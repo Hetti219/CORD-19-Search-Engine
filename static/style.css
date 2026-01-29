@@ -198,3 +198,84 @@ footer {
 .about-container li {
     margin-bottom: 0.5rem;
 }
+
+/* Setup page */
+.setup-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.setup-container h1 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.setup-message {
+    color: #666;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+}
+
+.setup-steps {
+    margin-bottom: 2rem;
+}
+
+.step {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+    border-left: 4px solid #3498db;
+}
+
+.step h2 {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin-bottom: 0.75rem;
+}
+
+.step p {
+    margin-bottom: 0.5rem;
+}
+
+.step ul {
+    margin-left: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.step li {
+    margin-bottom: 0.25rem;
+}
+
+.step pre {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+}
+
+.step code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+}
+
+.setup-note {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.setup-note h3 {
+    color: #856404;
+    margin-bottom: 0.5rem;
+}
+
+.setup-note p {
+    color: #856404;
+    margin: 0;
+}
