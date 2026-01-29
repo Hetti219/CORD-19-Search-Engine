@@ -5,19 +5,32 @@ Flask web application providing the search interface.
 This is the PRESENTATION LAYER of your search engine.
 """
 
+import os
 from flask import Flask, render_template, request
 from searcher import CORD19Searcher
+from whoosh.index import EmptyIndexError
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
-# Initialise the searcher (loads the index)
-searcher = CORD19Searcher("../index")
+# Try to initialise the searcher (loads the index)
+searcher = None
+index_path = os.path.join(os.path.dirname(__file__), '..', 'index')
+
+try:
+    if os.path.exists(index_path) and os.listdir(index_path):
+        searcher = CORD19Searcher(index_path)
+except (EmptyIndexError, Exception) as e:
+    print(f"Warning: Could not load search index: {e}")
+    searcher = None
 
 @app.route('/')
 def home():
     """
     Home page with search box.
     """
+    if searcher is None:
+        return render_template('setup.html')
+
     stats = searcher.get_index_stats()
     return render_template('search.html', stats=stats)
 
@@ -30,6 +43,9 @@ def search():
         q: Search query string
         page: Page number (default: 1)
     """
+    if searcher is None:
+        return render_template('setup.html')
+
     query = request.args.get('q', '').strip()
     page = request.args.get('page', 1, type=int)
 
