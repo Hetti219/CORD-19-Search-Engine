@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Required - CORD-19 Search Engine{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+    <h1>Setup Required</h1>
+    <p class="setup-message">The search index has not been created yet. Please follow these steps to set up the search engine:</p>
+
+    <div class="setup-steps">
+        <div class="step">
+            <h2>Step 1: Download CORD-19 Dataset</h2>
+            <p>Download the <code>metadata.csv</code> file from one of these sources:</p>
+            <ul>
+                <li><a href="https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases.html" target="_blank">Allen Institute for AI</a></li>
+                <li><a href="https://www.kaggle.com/datasets/allen-institute-for-ai/CORD-19-research-challenge" target="_blank">Kaggle CORD-19 Dataset</a></li>
+            </ul>
+            <p>Place the <code>metadata.csv</code> file in: <code>data/raw/metadata.csv</code></p>
+        </div>
+
+        <div class="step">
+            <h2>Step 2: Install Dependencies</h2>
+            <pre><code>pip install -r requirements.txt</code></pre>
+        </div>
+
+        <div class="step">
+            <h2>Step 3: Preprocess the Data</h2>
+            <p>Run the preprocessor to clean and prepare the data:</p>
+            <pre><code>python src/preprocessor.py</code></pre>
+            <p>This will create <code>data/processed/papers.csv</code></p>
+        </div>
+
+        <div class="step">
+            <h2>Step 4: Build the Search Index</h2>
+            <p>Create the Whoosh search index:</p>
+            <pre><code>python src/indexer.py</code></pre>
+            <p>This will create the index in the <code>index/</code> directory</p>
+        </div>
+
+        <div class="step">
+            <h2>Step 5: Restart the Application</h2>
+            <p>Once the index is built, restart the Flask application:</p>
+            <pre><code>python src/app.py</code></pre>
+            <p>Then refresh this page.</p>
+        </div>
+    </div>
+
+    <div class="setup-note">
+        <h3>Note:</h3>
+        <p>Building the index may take several minutes depending on the dataset size. For faster testing during development, you can modify <code>src/preprocessor.py</code> to use a smaller sample (e.g., 10,000 papers).</p>
+    </div>
+</div>
+{% endblock %}
