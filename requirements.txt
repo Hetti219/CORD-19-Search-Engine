@@ -1,0 +1,4 @@
+whoosh
+flask
+pandas
+tqdm

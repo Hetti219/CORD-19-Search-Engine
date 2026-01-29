@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}About - CORD-19 Search Engine{% endblock %}
+
+{% block content %}
+<div class="about-container">
+    <h1>About This Search Engine</h1>
+
+    <section>
+        <h2>Overview</h2>
+        <p>This search engine was developed as part of the 6CS030 Big Data assessment. It enables efficient retrieval of COVID-19 research papers from the CORD-19 dataset using the BM25 ranking algorithm.</p>
+    </section>
+
+    <section>
+        <h2>Technology Stack</h2>
+        <ul>
+            <li><strong>Search Library:</strong> Whoosh (Pure Python search library)</li>
+            <li><strong>Web Framework:</strong> Flask</li>
+            <li><strong>Data Processing:</strong> Pandas</li>
+            <li><strong>Ranking Algorithm:</strong> BM25F</li>
+            <li><strong>Dataset:</strong> CORD-19</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>How BM25 Ranking Works</h2>
+        <p>BM25 (Best Matching 25) is a probabilistic ranking function that scores documents based on:</p>
+        <ul>
+            <li><strong>Term Frequency:</strong> How often query terms appear in the document</li>
+            <li><strong>Document Length:</strong> Normalises scores so longer documents don't have an unfair advantage</li>
+            <li><strong>Inverse Document Frequency:</strong> Rare terms are weighted more heavily than common terms</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Dataset Information</h2>
+        <p>The CORD-19 (COVID-19 Open Research Dataset) is a resource of scientific papers about COVID-19 and related coronaviruses. It was created by the Allen Institute for AI in partnership with leading research groups.</p>
+    </section>
+
+    <section>
+        <h2>Information Needs Supported</h2>
+        <ul>
+            <li><strong>Researchers:</strong> Finding papers on specific COVID-19 topics</li>
+            <li><strong>Healthcare Professionals:</strong> Treatment protocols, clinical trial results</li>
+            <li><strong>Policy Makers:</strong> Epidemiological data, transmission studies</li>
+            <li><strong>Students:</strong> Literature review, background research</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}

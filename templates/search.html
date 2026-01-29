@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="search-container">
+    <h1>COVID-19 Research Search Engine</h1>
+    <p class="subtitle">Search {{ stats.total_documents | default(0) }} research papers from CORD-19</p>
+
+    <form action="/search" method="GET" class="search-form">
+        <input type="text" name="q" placeholder="Search COVID-19 research papers..."
+               class="search-input" autofocus>
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <div class="example-queries">
+        <p>Example searches:</p>
+        <ul>
+            <li><a href="/search?q=COVID-19+vaccine+efficacy">COVID-19 vaccine efficacy</a></li>
+            <li><a href="/search?q=SARS-CoV-2+transmission">SARS-CoV-2 transmission</a></li>
+            <li><a href="/search?q=long+COVID+symptoms">Long COVID symptoms</a></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
