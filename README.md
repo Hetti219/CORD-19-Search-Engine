@@ -195,6 +195,8 @@ app.run(debug=True, port=5000)  # Change port number here
 
 ## Example Queries
 
+### Basic Keyword Searches
+
 | Query                              | Description                        |
 | ---------------------------------- | ---------------------------------- |
 | `COVID-19 vaccine efficacy`        | Papers about vaccine effectiveness |
@@ -202,6 +204,20 @@ app.run(debug=True, port=5000)  # Change port number here
 | `coronavirus treatment remdesivir` | Remdesivir treatment research      |
 | `long COVID symptoms`              | Long-term COVID effects            |
 | `pandemic lockdown mental health`  | Mental health impact studies       |
+
+### Advanced Query Operators
+
+The search engine supports boolean operators and phrase searches:
+
+| Query Type      | Example                                | Description                            |
+| --------------- | -------------------------------------- | -------------------------------------- |
+| **Boolean AND** | `"vaccine efficacy" AND pfizer`        | Requires both terms/phrases to match   |
+| **Boolean OR**  | `vaccine OR immunization`              | Matches either term                    |
+| **Boolean NOT** | `treatment NOT hydroxychloroquine`     | Excludes specific terms                |
+| **Phrase**      | `"asymptomatic transmission"`          | Exact phrase matching                  |
+| **Nested**      | `mask AND (efficacy OR effectiveness)` | Parentheses for operator precedence    |
+
+**Note**: All searches are case-insensitive and use stemming (e.g., "vaccine" matches "vaccines").
 
 ## Troubleshooting
 
