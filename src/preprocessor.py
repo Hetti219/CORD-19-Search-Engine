@@ -40,7 +40,7 @@ def preprocess_cord19(input_path, output_path, sample_size=None):
         DataFrame of processed papers
     """
     print("Loading CORD-19 metadata...")
-    df = pd.read_csv(input_path)
+    df = pd.read_csv(input_path, low_memory=False)
 
     # Optional: Sample for faster development
     if sample_size:
