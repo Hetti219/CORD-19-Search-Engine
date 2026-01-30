@@ -86,9 +86,14 @@ def preprocess_cord19(input_path, output_path, sample_size=None):
     return df
 
 if __name__ == "__main__":
-    # Example usage
+    import os
+
+    # Use absolute paths relative to script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+
     preprocess_cord19(
-        input_path="data/raw/metadata.csv",
-        output_path="data/processed/papers.csv",
+        input_path=os.path.join(project_root, "data", "raw", "metadata.csv"),
+        output_path=os.path.join(project_root, "data", "processed", "papers.csv"),
         sample_size=50000  # Start with 50k for development, remove for full dataset
     )

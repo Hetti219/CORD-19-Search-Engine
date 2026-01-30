@@ -92,7 +92,11 @@ def create_index(processed_data_path, index_dir):
     return ix
 
 if __name__ == "__main__":
+    # Use absolute paths relative to script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+
     create_index(
-        processed_data_path="data/processed/papers.csv",
-        index_dir="index"
+        processed_data_path=os.path.join(project_root, "data", "processed", "papers.csv"),
+        index_dir=os.path.join(project_root, "index")
     )
