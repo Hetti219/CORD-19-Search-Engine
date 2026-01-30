@@ -11,21 +11,25 @@ Key operations:
 """
 
 import pandas as pd
-import re
 from tqdm import tqdm
 
-def clean_text(text):
+def clean_text_vectorized(series):
     """
+    Vectorized text cleaning - much faster than apply().
     Remove unwanted characters and normalise whitespace.
     This is crucial for accurate indexing.
     """
-    if pd.isna(text):
-        return ""
+    # Fill NaN values with empty string
+    series = series.fillna('')
+    # Convert to string type
+    series = series.astype(str)
     # Remove special characters but keep hyphens (important for medical terms)
-    text = re.sub(r'[^\w\s\-]', ' ', str(text))
+    series = series.str.replace(r'[^\w\s\-]', ' ', regex=True)
     # Normalise whitespace
-    text = ' '.join(text.split())
-    return text.lower()
+    series = series.str.split().str.join(' ')
+    # Lowercase
+    series = series.str.lower()
+    return series
 
 def preprocess_cord19(input_path, output_path, sample_size=None):
     """
@@ -69,9 +73,9 @@ def preprocess_cord19(input_path, output_path, sample_size=None):
     # Remove duplicates based on title
     df = df.drop_duplicates(subset=['title'], keep='first')
 
-    # Clean text fields
-    df['title_clean'] = df['title'].apply(clean_text)
-    df['abstract_clean'] = df['abstract'].apply(clean_text)
+    # Clean text fields (vectorized - much faster than apply)
+    df['title_clean'] = clean_text_vectorized(df['title'])
+    df['abstract_clean'] = clean_text_vectorized(df['abstract'])
 
     # Fill missing values
     df['authors'] = df['authors'].fillna('Unknown')
