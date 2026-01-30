@@ -46,7 +46,7 @@ instance/
 
 # Data and Index
 data/
-
+index/
 
 # Environment variables
 .env
