@@ -6,9 +6,14 @@ This is the PRESENTATION LAYER of your search engine.
 """
 
 import os
+import sys
 from flask import Flask, render_template, request
-from searcher import CORD19Searcher
 from whoosh.index import EmptyIndexError
+
+# Add src directory to path for robust imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from searcher import CORD19Searcher
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
