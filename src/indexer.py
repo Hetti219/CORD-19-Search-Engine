@@ -71,20 +71,26 @@ def create_index(processed_data_path, index_dir):
 
     # Write documents to index
     print("Building index...")
-    writer = ix.writer()
+    # Optimize writer for performance:
+    # - procs=4: Use 4 CPU cores (leaving 4 free for system)
+    # - limitmb=512: Use up to 512MB RAM buffer (safe for 11GB system)
+    # - multisegment=True: Create multiple segments for parallel processing
+    writer = ix.writer(procs=4, limitmb=512, multisegment=True)
 
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Indexing"):
+    # Use itertuples() instead of iterrows() - 100x faster!
+    # itertuples() returns named tuples instead of Series objects
+    for row in tqdm(df.itertuples(), total=len(df), desc="Indexing"):
         writer.add_document(
-            cord_uid=str(row.get('cord_uid', '')),
-            title=str(row.get('title', '')),
-            abstract=str(row.get('abstract', '')),
-            authors=str(row.get('authors', '')),
-            journal=str(row.get('journal', '')),
-            publish_time=str(row.get('publish_time', '')),
-            url=str(row.get('url', ''))
+            cord_uid=str(getattr(row, 'cord_uid', '')),
+            title=str(getattr(row, 'title', '')),
+            abstract=str(getattr(row, 'abstract', '')),
+            authors=str(getattr(row, 'authors', '')),
+            journal=str(getattr(row, 'journal', '')),
+            publish_time=str(getattr(row, 'publish_time', '')),
+            url=str(getattr(row, 'url', ''))
         )
 
-    # Commit writes to disk
+    # Commit writes to disk (optimized with multisegment)
     print("Committing index to disk...")
     writer.commit()
 
