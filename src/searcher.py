@@ -76,12 +76,20 @@ class CORD19Searcher:
 
         # Open a searcher with BM25F scoring
         with self.ix.searcher(weighting=BM25F()) as searcher:
-            # Execute search
-            results = searcher.search(
-                query,
-                limit=None  # Get all results for accurate pagination
-            )
+            # OPTIMIZATION: Only retrieve what we need instead of all results
+            # Calculate how many results we need for this page
+            # Add buffer of 1000 to ensure accurate counts for reasonable pagination
+            needed = page * results_per_page
+            limit = max(needed, 100)  # Minimum 100 for good count estimates
 
+            # For very deep pagination (page > 100), cap limit to avoid memory issues
+            if limit > 10000:
+                limit = 10000
+
+            # Execute search with optimized limit
+            results = searcher.search(query, limit=limit)
+
+            # Get total count (only counts scored results, not all matches)
             total = len(results)
             total_pages = (total + results_per_page - 1) // results_per_page
 
