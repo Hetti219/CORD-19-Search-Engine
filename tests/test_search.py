@@ -33,6 +33,7 @@ def run_test_searches():
     print(f"  Indexed Fields: {', '.join(stats['fields'])}")
 
     # Example searches to include in report
+    # Simple keyword queries
     test_queries = [
         "COVID-19 vaccine efficacy",
         "SARS-CoV-2 transmission",
@@ -41,11 +42,30 @@ def run_test_searches():
         "pandemic lockdown mental health"
     ]
 
+    # Advanced queries (boolean and phrase)
+    # These demonstrate the query parser's support for complex search operators
+    advanced_queries = [
+        '"vaccine efficacy" AND pfizer',           # Phrase + Boolean AND: exact phrase combined with keyword
+        'vaccine OR immunization',                  # Boolean OR: matches either term
+        'treatment NOT hydroxychloroquine',         # Boolean NOT: excludes specific term
+        '"asymptomatic transmission"',              # Exact phrase: matches exact word sequence
+        'mask AND (efficacy OR effectiveness)'      # Nested boolean: parentheses for precedence
+    ]
+
+    # Combine all queries for testing
+    all_queries = test_queries + advanced_queries
+
     print("\n" + "=" * 70)
     print("EXAMPLE SEARCHES FOR REPORT")
     print("=" * 70)
+    print("\nThis includes:")
+    print("  - Basic keyword searches (5 queries)")
+    print("  - Advanced boolean queries: AND, OR, NOT (3 queries)")
+    print("  - Phrase searches using quotes (2 queries)")
+    print("  - Nested boolean with parentheses (1 query)")
+    print("\nAll searches use BM25F ranking across title and abstract fields.")
 
-    for query in test_queries:
+    for query in all_queries:
         print(f"\n{'─' * 70}")
         print(f"Query: '{query}'")
         print("─" * 70)
@@ -82,7 +102,16 @@ def generate_report_table():
         "pandemic lockdown mental health"
     ]
 
+    advanced_queries = [
+        '"vaccine efficacy" AND pfizer',
+        'vaccine OR immunization',
+        'treatment NOT hydroxychloroquine',
+        '"asymptomatic transmission"',
+        'mask AND (efficacy OR effectiveness)'
+    ]
+
     print("\n## Search Results Table (for Report)\n")
+    print("### Basic Keyword Searches\n")
     print("| Query | Total Results | Top Result | BM25 Score |")
     print("|-------|---------------|------------|------------|")
 
@@ -96,6 +125,27 @@ def generate_report_table():
             top_title = "No results"
             top_score = "N/A"
         print(f"| {query} | {total} | {top_title} | {top_score} |")
+
+    print("\n### Advanced Boolean & Phrase Searches\n")
+    print("| Query Type | Query | Total Results | BM25 Score |")
+    print("|------------|-------|---------------|------------|")
+
+    query_types = [
+        "Phrase + AND",
+        "Boolean OR",
+        "Boolean NOT",
+        "Exact Phrase",
+        "Nested Boolean"
+    ]
+
+    for qtype, query in zip(query_types, advanced_queries):
+        results = searcher.search(query, page=1, results_per_page=1)
+        total = results['total']
+        if results['results']:
+            top_score = f"{results['results'][0]['score']:.2f}"
+        else:
+            top_score = "N/A"
+        print(f"| {qtype} | `{query}` | {total} | {top_score} |")
 
 
 if __name__ == "__main__":
