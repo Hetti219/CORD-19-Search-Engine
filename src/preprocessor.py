@@ -95,5 +95,5 @@ if __name__ == "__main__":
     preprocess_cord19(
         input_path=os.path.join(project_root, "data", "raw", "metadata.csv"),
         output_path=os.path.join(project_root, "data", "processed", "papers.csv"),
-        sample_size=50000  # Start with 50k for development, remove for full dataset
+        #sample_size=50000  # Start with 50k for development, remove for full dataset
     )
