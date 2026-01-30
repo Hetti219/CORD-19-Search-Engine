@@ -47,12 +47,14 @@ cord19_search_engine/
 ## Installation
 
 1. **Clone the repository**:
+
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Hetti219/CORD-19-Search-Engine.git
    cd cord19_search_engine
    ```
 
 2. **Create a virtual environment** (recommended):
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
@@ -66,6 +68,7 @@ cord19_search_engine/
 ## Dataset Setup
 
 1. **Download the CORD-19 dataset**:
+
    ```bash
    cd data/raw
    wget https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/2022-06-02/metadata.csv
@@ -76,9 +79,11 @@ cord19_search_engine/
    - [Kaggle CORD-19 Dataset](https://www.kaggle.com/datasets/allen-institute-for-ai/CORD-19-research-challenge)
 
 2. **Preprocess the data**:
+
    ```bash
    python src/preprocessor.py
    ```
+
    This cleans the data and creates `data/processed/papers.csv`.
 
 3. **Build the search index**:
@@ -90,6 +95,7 @@ cord19_search_engine/
 ## Running the Application
 
 1. **Start the Flask server**:
+
    ```bash
    python src/app.py
    ```
@@ -102,20 +108,25 @@ cord19_search_engine/
 ## Usage
 
 ### Web Interface
+
 - Enter search queries in the search box (e.g., "COVID-19 vaccine efficacy")
 - Browse paginated results with relevance scores
 - Click on paper titles to view source URLs
 
 ### Command Line Testing
+
 ```bash
 python src/searcher.py
 ```
+
 This runs example searches and displays results for report documentation.
 
 ### Test Searches
+
 ```bash
 python tests/test_search.py
 ```
+
 Generates formatted output suitable for inclusion in academic reports.
 
 ## Technical Details
@@ -129,6 +140,7 @@ score(D, Q) = Σ IDF(qi) * (f(qi, D) * (k1 + 1)) / (f(qi, D) + k1 * (1 - b + b *
 ```
 
 Where:
+
 - **D** = document
 - **Q** = query
 - **qi** = individual query terms
@@ -141,19 +153,20 @@ Where:
 
 ### Index Schema
 
-| Field | Type | Indexed | Stored | Description |
-|-------|------|---------|--------|-------------|
-| cord_uid | ID | No | Yes | Unique paper identifier |
-| title | TEXT | Yes | Yes | Paper title (searchable) |
-| abstract | TEXT | Yes | Yes | Paper abstract (searchable) |
-| authors | STORED | No | Yes | Author list |
-| journal | STORED | No | Yes | Journal name |
-| publish_time | STORED | No | Yes | Publication date |
-| url | STORED | No | Yes | Link to paper |
+| Field        | Type   | Indexed | Stored | Description                 |
+| ------------ | ------ | ------- | ------ | --------------------------- |
+| cord_uid     | ID     | No      | Yes    | Unique paper identifier     |
+| title        | TEXT   | Yes     | Yes    | Paper title (searchable)    |
+| abstract     | TEXT   | Yes     | Yes    | Paper abstract (searchable) |
+| authors      | STORED | No      | Yes    | Author list                 |
+| journal      | STORED | No      | Yes    | Journal name                |
+| publish_time | STORED | No      | Yes    | Publication date            |
+| url          | STORED | No      | Yes    | Link to paper               |
 
 ### Text Processing
 
 The `StemmingAnalyzer` performs:
+
 1. **Tokenisation**: Splits text into words
 2. **Lowercasing**: Normalises case
 3. **Stemming**: Reduces words to root form (e.g., "vaccines" → "vaccin")
@@ -161,6 +174,7 @@ The `StemmingAnalyzer` performs:
 ## Configuration
 
 ### Sample Size
+
 By default, the preprocessor uses 50,000 papers for faster development. To use the full dataset (~1M papers), edit `src/preprocessor.py`:
 
 ```python
@@ -172,36 +186,43 @@ sample_size=None   # Full dataset
 ```
 
 ### Server Port
+
 To change the default port (5000), edit `src/app.py`:
+
 ```python
 app.run(debug=True, port=5000)  # Change port number here
 ```
 
 ## Example Queries
 
-| Query | Description |
-|-------|-------------|
-| `COVID-19 vaccine efficacy` | Papers about vaccine effectiveness |
-| `SARS-CoV-2 transmission` | Virus transmission studies |
-| `coronavirus treatment remdesivir` | Remdesivir treatment research |
-| `long COVID symptoms` | Long-term COVID effects |
-| `pandemic lockdown mental health` | Mental health impact studies |
+| Query                              | Description                        |
+| ---------------------------------- | ---------------------------------- |
+| `COVID-19 vaccine efficacy`        | Papers about vaccine effectiveness |
+| `SARS-CoV-2 transmission`          | Virus transmission studies         |
+| `coronavirus treatment remdesivir` | Remdesivir treatment research      |
+| `long COVID symptoms`              | Long-term COVID effects            |
+| `pandemic lockdown mental health`  | Mental health impact studies       |
 
 ## Troubleshooting
 
 ### "Index does not exist" error
+
 Run the indexer first:
+
 ```bash
 python src/indexer.py
 ```
 
 ### "Port already in use" error
+
 Kill the existing process or use a different port:
+
 ```bash
 lsof -ti:5000 | xargs kill -9
 ```
 
 ### DtypeWarning during preprocessing
+
 This is normal and harmless. The warning has been suppressed with `low_memory=False`.
 
 ## License
