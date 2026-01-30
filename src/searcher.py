@@ -123,7 +123,14 @@ class CORD19Searcher:
 
 # Example usage and testing (include these in your report)
 if __name__ == "__main__":
-    searcher = CORD19Searcher("index")
+    import os
+
+    # Use absolute path relative to script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    index_path = os.path.join(project_root, "index")
+
+    searcher = CORD19Searcher(index_path)
 
     # Example searches to include in report
     test_queries = [
