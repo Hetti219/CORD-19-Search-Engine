@@ -1,0 +1,14 @@
+# Development dependencies for CORD-19 Search Engine
+# Install with: pip install -r requirements-dev.txt
+
+# Code Quality Tools
+flake8==7.0.0           # Python linting
+black==24.1.1           # Code formatting
+pylint==3.0.3           # Advanced linting
+
+# Security
+safety==3.0.1           # Dependency vulnerability scanning
+
+# Testing (for future expansion)
+pytest==7.4.4           # Testing framework
+pytest-cov==4.1.0       # Coverage reporting
