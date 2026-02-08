@@ -7,7 +7,7 @@ black==24.1.1           # Code formatting
 pylint==3.0.3           # Advanced linting
 
 # Security
-safety==3.0.1           # Dependency vulnerability scanning
+safety==3.7.0           # Dependency vulnerability scanning
 
 # Testing (for future expansion)
 pytest==7.4.4           # Testing framework
