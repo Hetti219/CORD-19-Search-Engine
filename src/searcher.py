@@ -89,8 +89,10 @@ class CORD19Searcher:
             # Execute search with optimized limit
             results = searcher.search(query, limit=limit)
 
-            # Get total count (only counts scored results, not all matches)
-            total = len(results)
+            # Use estimated_length() for a more accurate total when limit caps results
+            scored = len(results)
+            estimated = results.estimated_length()
+            total = max(scored, estimated)
             total_pages = (total + results_per_page - 1) // results_per_page
 
             # Calculate slice for current page
