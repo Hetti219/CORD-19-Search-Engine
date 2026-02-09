@@ -9,6 +9,7 @@ This is the core RETRIEVAL FUNCTION for your search engine.
 from whoosh import index
 from whoosh.qparser import MultifieldParser, OrGroup
 from whoosh.scoring import BM25F
+from whoosh.highlight import Highlighter, ContextFragmenter, WholeFragmenter, HtmlFormatter
 
 class CORD19Searcher:
     """
@@ -30,6 +31,17 @@ class CORD19Searcher:
             ["title", "abstract"],  # Fields to search
             schema=self.ix.schema,
             group=OrGroup  # OR logic between terms
+        )
+
+        # Configure highlighters for query term highlighting in results
+        formatter = HtmlFormatter(tagname="mark", classname="highlight")
+        self.abstract_highlighter = Highlighter(
+            fragmenter=ContextFragmenter(maxchars=200, surround=40),
+            formatter=formatter
+        )
+        self.title_highlighter = Highlighter(
+            fragmenter=WholeFragmenter(),
+            formatter=formatter
         )
 
     def search(self, query_string, page=1, results_per_page=10):
@@ -99,14 +111,24 @@ class CORD19Searcher:
             start = (page - 1) * results_per_page
             end = start + results_per_page
 
-            # Extract results for current page
+            # Extract results for current page with highlighted query terms
             result_list = []
             for hit in results[start:end]:
-                abstract = hit.get('abstract', 'No abstract')
+                # Context-aware highlighted abstract snippets
+                highlighted_abstract = self.abstract_highlighter.highlight_hit(hit, "abstract", top=3)
+                if not highlighted_abstract:
+                    abstract = hit.get('abstract', 'No abstract')
+                    highlighted_abstract = abstract[:300] + ('...' if len(abstract) > 300 else '')
+
+                # Highlighted title (full text with matching terms marked)
+                highlighted_title = self.title_highlighter.highlight_hit(hit, "title")
+                if not highlighted_title:
+                    highlighted_title = hit.get('title', 'No title')
+
                 result_list.append({
                     'cord_uid': hit.get('cord_uid', ''),
-                    'title': hit.get('title', 'No title'),
-                    'abstract': abstract[:300] + '...' if len(abstract) > 300 else abstract,
+                    'title': highlighted_title,
+                    'abstract': highlighted_abstract,
                     'authors': hit.get('authors', 'Unknown'),
                     'journal': hit.get('journal', 'Unknown'),
                     'publish_time': hit.get('publish_time', 'Unknown'),
