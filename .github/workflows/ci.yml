@@ -83,6 +83,11 @@ jobs:
       run: |
         python -c "from src.app import app; assert app is not None; print('✓ Flask app initializes successfully')"
 
+    - name: Run test suite
+      run: |
+        pip install pytest
+        pytest tests/ -v --tb=short
+
   dependency-security:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
