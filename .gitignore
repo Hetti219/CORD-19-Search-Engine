@@ -69,3 +69,5 @@ htmlcov/
 *.bak
 
 CLAUDE.md
+ANALYSIS.md
+PR_DESC.md
