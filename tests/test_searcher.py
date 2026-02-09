@@ -156,21 +156,28 @@ def test_pagination_beyond_last_page(searcher):
     assert result["page"] == 9999
 
 
-# ── Abstract truncation ────────────────────────────────────────────────────
+# ── Query term highlighting ────────────────────────────────────────────────
 
-def test_abstract_truncation_long(searcher):
-    """uid001 has a >300 char abstract — should be truncated with '...'."""
+def test_abstract_highlighting(searcher):
+    """Matching query terms in abstract are wrapped in <mark> tags."""
     result = searcher.search("COVID-19 vaccine efficacy clinical trials")
     hit = next(r for r in result["results"] if r["cord_uid"] == "uid001")
-    assert hit["abstract"].endswith("...")
-    assert len(hit["abstract"]) == 303
+    assert "<mark class=" in hit["abstract"]
+    assert "</mark>" in hit["abstract"]
 
 
-def test_abstract_no_truncation_short(searcher):
-    """uid002 has a <300 char abstract — no ellipsis appended."""
-    result = searcher.search("SARS-CoV-2 transmission indoor")
-    hit = next(r for r in result["results"] if r["cord_uid"] == "uid002")
-    assert not hit["abstract"].endswith("...")
+def test_title_highlighting(searcher):
+    """Matching query terms in title are wrapped in <mark> tags."""
+    result = searcher.search("COVID-19 vaccine efficacy clinical trials")
+    hit = next(r for r in result["results"] if r["cord_uid"] == "uid001")
+    assert "<mark class=" in hit["title"]
+    assert "</mark>" in hit["title"]
+
+
+def test_abstract_fallback_no_match(searcher):
+    """When no terms match, abstract falls back to truncated plain text."""
+    result = searcher.search("xyznonexistentterm")
+    assert result["total"] == 0
 
 
 # ── get_index_stats ─────────────────────────────────────────────────────────

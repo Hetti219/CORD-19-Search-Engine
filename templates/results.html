@@ -21,9 +21,9 @@
         <article class="result-item">
             <h2 class="result-title">
                 {% if result.url %}
-                <a href="{{ result.url }}" target="_blank">{{ result.title }}</a>
+                <a href="{{ result.url }}" target="_blank">{{ result.title | safe }}</a>
                 {% else %}
-                {{ result.title }}
+                {{ result.title | safe }}
                 {% endif %}
             </h2>
             <p class="result-meta">
@@ -32,7 +32,7 @@
                 | <span class="date">{{ result.publish_time }}</span>
                 | <span class="score">Score: {{ "%.2f"|format(result.score) }}</span>
             </p>
-            <p class="result-abstract">{{ result.abstract }}</p>
+            <p class="result-abstract">{{ result.abstract | safe }}</p>
         </article>
         {% else %}
         <p class="no-results">No results found for "{{ query }}"</p>
