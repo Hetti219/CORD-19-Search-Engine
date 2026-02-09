@@ -43,13 +43,13 @@
     {% if total_pages > 1 %}
     <nav class="pagination">
         {% if page > 1 %}
-        <a href="/search?q={{ query }}&page={{ page - 1 }}">&laquo; Previous</a>
+        <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}">&laquo; Previous</a>
         {% endif %}
 
         <span>Page {{ page }} of {{ total_pages }}</span>
 
         {% if page < total_pages %}
-        <a href="/search?q={{ query }}&page={{ page + 1 }}">Next &raquo;</a>
+        <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}">Next &raquo;</a>
         {% endif %}
     </nav>
     {% endif %}

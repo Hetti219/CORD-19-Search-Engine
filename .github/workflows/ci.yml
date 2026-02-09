@@ -75,7 +75,7 @@ jobs:
     - name: Test module imports
       run: |
         python -c "from src.preprocessor import preprocess_cord19; print('✓ preprocessor.py imports successfully')"
-        python -c "from src.indexer import build_search_index; print('✓ indexer.py imports successfully')"
+        python -c "from src.indexer import create_index; print('✓ indexer.py imports successfully')"
         python -c "from src.searcher import CORD19Searcher; print('✓ searcher.py imports successfully')"
         python -c "from src.app import app; print('✓ app.py imports successfully')"
 
