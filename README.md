@@ -297,7 +297,7 @@ writer = ix.writer(
 To change the default port (5000), edit `src/app.py`:
 
 ```python
-app.run(debug=True, port=5000)  # Change port number here
+app.run(debug=False, port=5000)  # Change port number here
 ```
 
 ## Example Queries
