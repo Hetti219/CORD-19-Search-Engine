@@ -100,10 +100,11 @@ class CORD19Searcher:
             # Extract results for current page
             result_list = []
             for hit in results[start:end]:
+                abstract = hit.get('abstract', 'No abstract')
                 result_list.append({
                     'cord_uid': hit.get('cord_uid', ''),
                     'title': hit.get('title', 'No title'),
-                    'abstract': hit.get('abstract', 'No abstract')[:300] + '...',
+                    'abstract': abstract[:300] + '...' if len(abstract) > 300 else abstract,
                     'authors': hit.get('authors', 'Unknown'),
                     'journal': hit.get('journal', 'Unknown'),
                     'publish_time': hit.get('publish_time', 'Unknown'),
