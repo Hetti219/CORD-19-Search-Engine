@@ -1,6 +1,6 @@
 # CORD-19 Search Engine
 
-[![CI/CD Pipeline](https://github.com/YOUR_USERNAME/cord19_search_engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Hetti219/Cord-19-Search-Engine/actions/workflows/ci.yml)
+[![CI/CD Pipeline](https://github.com/YOUR_USERNAME/cord19_search_engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Hetti219/CORD-19-Search-Engine/actions/workflows/ci.yml)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
