@@ -6,10 +6,14 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions: {}
+
 jobs:
   code-quality:
     name: Code Quality Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -54,6 +58,8 @@ jobs:
   import-tests:
     name: Import and Smoke Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
@@ -91,6 +97,8 @@ jobs:
   dependency-security:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -115,6 +123,8 @@ jobs:
   project-structure:
     name: Validate Project Structure
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -143,6 +153,7 @@ jobs:
   build-summary:
     name: Build Summary
     runs-on: ubuntu-latest
+    permissions: {}
     needs: [code-quality, import-tests, dependency-security, project-structure]
     if: always()
 
