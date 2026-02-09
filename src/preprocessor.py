@@ -10,26 +10,8 @@ Key operations:
 5. Save processed data
 """
 
+import os
 import pandas as pd
-from tqdm import tqdm
-
-def clean_text_vectorized(series):
-    """
-    Vectorized text cleaning - much faster than apply().
-    Remove unwanted characters and normalise whitespace.
-    This is crucial for accurate indexing.
-    """
-    # Fill NaN values with empty string
-    series = series.fillna('')
-    # Convert to string type
-    series = series.astype(str)
-    # Remove special characters but keep hyphens (important for medical terms)
-    series = series.str.replace(r'[^\w\s\-]', ' ', regex=True)
-    # Normalise whitespace
-    series = series.str.split().str.join(' ')
-    # Lowercase
-    series = series.str.lower()
-    return series
 
 def preprocess_cord19(input_path, output_path, sample_size=None):
     """
@@ -73,10 +55,6 @@ def preprocess_cord19(input_path, output_path, sample_size=None):
     # Remove duplicates based on title
     df = df.drop_duplicates(subset=['title'], keep='first')
 
-    # Clean text fields (vectorized - much faster than apply)
-    df['title_clean'] = clean_text_vectorized(df['title'])
-    df['abstract_clean'] = clean_text_vectorized(df['abstract'])
-
     # Fill missing values
     df['authors'] = df['authors'].fillna('Unknown')
     df['journal'] = df['journal'].fillna('Unknown')
@@ -84,14 +62,13 @@ def preprocess_cord19(input_path, output_path, sample_size=None):
     df['url'] = df['url'].fillna('')
 
     # Save processed data
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df.to_csv(output_path, index=False)
     print(f"Saved {len(df)} processed papers to {output_path}")
 
     return df
 
 if __name__ == "__main__":
-    import os
-
     # Use absolute paths relative to script location
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
