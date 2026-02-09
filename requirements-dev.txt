@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements-dev.txt
 
 # Code Quality Tools
-flake8==7.0.0           # Python linting
+flake8==7.3.0           # Python linting
 black==26.1.0           # Code formatting
 pylint==3.0.3           # Advanced linting
 
