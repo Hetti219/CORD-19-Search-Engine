@@ -31,7 +31,7 @@ def create_schema():
 
     schema = Schema(
         # ID fields: stored but not tokenised
-        cord_uid=ID(stored=True, unique=True),
+        cord_uid=ID(stored=True),
         url=STORED(),
 
         # TEXT fields: indexed and searchable
