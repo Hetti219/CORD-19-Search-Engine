@@ -9,7 +9,7 @@ This is the core RETRIEVAL FUNCTION for your search engine.
 from whoosh import index
 from whoosh.qparser import MultifieldParser, OrGroup
 from whoosh.scoring import BM25F
-from whoosh.highlight import Highlighter, ContextFragmenter, WholeFragmenter, HtmlFormatter
+from whoosh.highlight import Highlighter, SentenceFragmenter, WholeFragmenter, HtmlFormatter
 
 class CORD19Searcher:
     """
@@ -34,9 +34,11 @@ class CORD19Searcher:
         )
 
         # Configure highlighters for query term highlighting in results
-        formatter = HtmlFormatter(tagname="mark", classname="highlight")
+        # SentenceFragmenter produces complete sentences containing query terms
+        # (like Google Scholar/PubMed) instead of cutting mid-sentence
+        formatter = HtmlFormatter(tagname="mark", classname="highlight", between=" ... ")
         self.abstract_highlighter = Highlighter(
-            fragmenter=ContextFragmenter(maxchars=200, surround=40),
+            fragmenter=SentenceFragmenter(maxchars=300),
             formatter=formatter
         )
         self.title_highlighter = Highlighter(
@@ -114,11 +116,11 @@ class CORD19Searcher:
             # Extract results for current page with highlighted query terms
             result_list = []
             for hit in results[start:end]:
-                # Context-aware highlighted abstract snippets
+                # Sentence-aware highlighted abstract snippets
                 highlighted_abstract = self.abstract_highlighter.highlight_hit(hit, "abstract", top=3)
                 if not highlighted_abstract:
                     abstract = hit.get('abstract', 'No abstract')
-                    highlighted_abstract = abstract[:300] + ('...' if len(abstract) > 300 else '')
+                    highlighted_abstract = self._truncate_at_sentence(abstract)
 
                 # Highlighted title (full text with matching terms marked)
                 highlighted_title = self.title_highlighter.highlight_hit(hit, "title")
@@ -143,6 +145,29 @@ class CORD19Searcher:
                 'total_pages': total_pages,
                 'query': query_string
             }
+
+    @staticmethod
+    def _truncate_at_sentence(text, max_length=300):
+        """Truncate text at the nearest sentence boundary within max_length.
+
+        Falls back to word boundary if no sentence end is found.
+        """
+        if len(text) <= max_length:
+            return text
+        truncated = text[:max_length]
+        # Find the last sentence-ending punctuation followed by a space
+        last_boundary = -1
+        for i in range(len(truncated) - 1, max_length // 3, -1):
+            if truncated[i] in '.!?' and (i + 1 >= len(truncated) or truncated[i + 1] == ' '):
+                last_boundary = i
+                break
+        if last_boundary > 0:
+            return text[:last_boundary + 1]
+        # Fallback: truncate at last word boundary
+        last_space = truncated.rfind(' ')
+        if last_space > 0:
+            return truncated[:last_space] + '...'
+        return truncated + '...'
 
     def get_index_stats(self):
         """

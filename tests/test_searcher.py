@@ -180,6 +180,44 @@ def test_abstract_fallback_no_match(searcher):
     assert result["total"] == 0
 
 
+# ── Smart snippets (sentence-aware) ───────────────────────────────────────
+
+def test_snippet_uses_sentence_fragments(searcher):
+    """SentenceFragmenter produces sentence-aware breaks with ' ... ' separators."""
+    result = searcher.search("COVID-19 vaccine efficacy clinical trials")
+    hit = next(r for r in result["results"] if r["cord_uid"] == "uid001")
+    import re
+    plain = re.sub(r"<[^>]+>", "", hit["abstract"])
+    # Sentence fragments are joined by the ' ... ' separator
+    assert " ... " in plain
+    # Snippet shows relevant content (contains query terms)
+    plain_lower = plain.lower()
+    assert "vaccine" in plain_lower
+    assert "efficacy" in plain_lower
+
+
+def test_truncate_at_sentence_short_text():
+    """Short text (under max_length) returned unchanged."""
+    short = "A brief sentence."
+    assert CORD19Searcher._truncate_at_sentence(short) == short
+
+
+def test_truncate_at_sentence_at_boundary():
+    """Long text truncated at the last sentence boundary within limit."""
+    text = "First sentence. " + "A" * 290 + ". Final bit that overflows the limit."
+    result = CORD19Searcher._truncate_at_sentence(text, max_length=310)
+    assert result.endswith(".")
+    assert len(result) <= 310
+
+
+def test_truncate_at_sentence_no_boundary():
+    """When no sentence boundary found, truncates at word boundary with ellipsis."""
+    text = "one two three four " * 20  # No sentence punctuation
+    result = CORD19Searcher._truncate_at_sentence(text, max_length=50)
+    assert result.endswith("...")
+    assert len(result) <= 53  # 50 + "..."
+
+
 # ── get_index_stats ─────────────────────────────────────────────────────────
 
 def test_get_index_stats(searcher):
