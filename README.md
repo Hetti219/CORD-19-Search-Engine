@@ -1,6 +1,6 @@
 # CORD-19 Search Engine
 
-[![CI/CD Pipeline](https://github.com/YOUR_USERNAME/cord19_search_engine/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/cord19_search_engine/actions/workflows/ci.yml)
+[![CI/CD Pipeline](https://github.com/YOUR_USERNAME/cord19_search_engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Hetti219/Cord-19-Search-Engine/actions/workflows/ci.yml)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -19,11 +19,13 @@ This search engine allows users to search through 850,000+ COVID-19 research pap
 ## Performance
 
 **Hardware Requirements:**
+
 - **Minimum**: 4 CPU cores, 4GB RAM, 5GB disk space
 - **Recommended**: 8+ CPU cores, 8GB+ RAM, 10GB disk space
 - **Optimized for**: Mid-range systems (4-8 cores, 8-16GB RAM)
 
 **Current Performance (850k documents):**
+
 - **Preprocessing**: Vectorized pandas operations for fast text cleaning
 - **Indexing**: ~6-10 minutes (multi-threaded with 4 cores)
 - **Search Speed**: 50-300ms for most queries
@@ -62,11 +64,13 @@ cord19_search_engine/
 The search engine includes several performance optimizations for handling large-scale datasets:
 
 ### 1. Vectorized Preprocessing ([preprocessor.py](src/preprocessor.py))
+
 - **Technique**: Pandas vectorized string operations instead of row-by-row `.apply()`
 - **Benefit**: 10-50x faster text cleaning on large datasets
 - **Implementation**: Uses `.str.replace()`, `.str.lower()` directly on Series objects
 
 ### 2. Multi-threaded Indexing ([indexer.py](src/indexer.py))
+
 - **Technique**: Whoosh writer with multiprocessing enabled
 - **Configuration**:
   - `procs=4`: Uses 4 CPU cores for parallel indexing
@@ -76,13 +80,16 @@ The search engine includes several performance optimizations for handling large-
 - **Note**: Uses `.itertuples()` instead of `.iterrows()` for 100x faster iteration
 
 ### 3. Optimized Search Queries ([searcher.py](src/searcher.py))
+
 - **Technique**: Smart result limiting based on pagination needs
 - **Implementation**: Only retrieves `max(page * results_per_page, 100)` results (capped at 10k)
 - **Benefit**: 10-20x faster searches (50-300ms vs 1-10 seconds)
 - **Previous Issue**: `limit=None` was loading all matching documents before pagination
 
 ### Hardware Adaptation
+
 The optimizations are designed to adapt to available system resources:
+
 - **CPU Usage**: Uses 4 cores by default (configurable in [indexer.py:78](src/indexer.py#L78))
 - **Memory Usage**: 512MB buffer (safe for systems with 4GB+ RAM)
 - **Disk I/O**: Multi-segment index structure reduces disk bottlenecks
@@ -262,6 +269,7 @@ preprocess_cord19(
 ```
 
 **Recommended sample sizes:**
+
 - **Development/Testing**: 10,000 papers (~30 seconds processing, ~20 seconds indexing)
 - **Small-scale**: 50,000 papers (~2-3 minutes processing, ~1-2 minutes indexing)
 - **Full dataset**: No limit (~850k papers, ~6-10 minutes indexing)
@@ -279,6 +287,7 @@ writer = ix.writer(
 ```
 
 **Guidelines:**
+
 - **CPU cores**: Use 50-75% of available cores (e.g., 4 cores on an 8-core system)
 - **RAM buffer**: Use 256MB for 4GB RAM, 512MB for 8GB+, 1024MB for 16GB+
 - **Keep multisegment=True**: Enables parallel search across index segments
@@ -307,13 +316,13 @@ app.run(debug=True, port=5000)  # Change port number here
 
 The search engine supports boolean operators and phrase searches:
 
-| Query Type      | Example                                | Description                            |
-| --------------- | -------------------------------------- | -------------------------------------- |
-| **Boolean AND** | `"vaccine efficacy" AND pfizer`        | Requires both terms/phrases to match   |
-| **Boolean OR**  | `vaccine OR immunization`              | Matches either term                    |
-| **Boolean NOT** | `treatment NOT hydroxychloroquine`     | Excludes specific terms                |
-| **Phrase**      | `"asymptomatic transmission"`          | Exact phrase matching                  |
-| **Nested**      | `mask AND (efficacy OR effectiveness)` | Parentheses for operator precedence    |
+| Query Type      | Example                                | Description                          |
+| --------------- | -------------------------------------- | ------------------------------------ |
+| **Boolean AND** | `"vaccine efficacy" AND pfizer`        | Requires both terms/phrases to match |
+| **Boolean OR**  | `vaccine OR immunization`              | Matches either term                  |
+| **Boolean NOT** | `treatment NOT hydroxychloroquine`     | Excludes specific terms              |
+| **Phrase**      | `"asymptomatic transmission"`          | Exact phrase matching                |
+| **Nested**      | `mask AND (efficacy OR effectiveness)` | Parentheses for operator precedence  |
 
 **Note**: All searches are case-insensitive and use stemming (e.g., "vaccine" matches "vaccines").
 
@@ -322,6 +331,7 @@ The search engine supports boolean operators and phrase searches:
 Results on a typical 8-core system with 11GB RAM (850,367 documents indexed):
 
 ### Indexing Performance
+
 ```
 Loading processed data...
 Building index...
@@ -329,11 +339,13 @@ Indexing: 100%|██████████| 850367/850367 [16:44<00:00, 846.8
 Committing index to disk...
 Index created with 850367 documents
 ```
+
 - **Throughput**: ~850 documents/second
 - **Total time**: ~6-10 minutes (with optimizations)
 - **Index size**: 2.1GB on disk
 
 ### Search Performance (Sample Queries)
+
 ```
 Query: 'COVID-19 vaccine efficacy'
   Results: 507,912 matches in 50-300ms
@@ -348,7 +360,7 @@ Query: 'mRNA vaccine technology'
 ### Performance vs. Scale
 
 | Dataset Size | Indexing Time | Search Time | Index Size |
-|--------------|---------------|-------------|------------|
+| ------------ | ------------- | ----------- | ---------- |
 | 10,000 docs  | ~20 seconds   | <50ms       | ~25MB      |
 | 50,000 docs  | ~1-2 minutes  | 50-100ms    | ~120MB     |
 | 850,000 docs | ~6-10 minutes | 50-300ms    | ~2.1GB     |
@@ -415,6 +427,7 @@ If you encounter memory errors:
 The search engine has been optimized for production-scale use with 850k+ documents:
 
 **Version 1.0 (Initial)**
+
 - Single-threaded indexing with `.iterrows()`
 - `limit=None` in search (loaded all results)
 - Row-by-row text processing
@@ -422,6 +435,7 @@ The search engine has been optimized for production-scale use with 850k+ documen
 - 1-10 second search times
 
 **Version 2.0 (Optimized - Current)**
+
 - Multi-threaded indexing with `.itertuples()` and 4 cores
 - Smart result limiting based on pagination
 - Vectorized text processing with pandas
@@ -438,6 +452,7 @@ The search engine has been optimized for production-scale use with 850k+ documen
 ### Future Enhancements
 
 Potential improvements for even better performance:
+
 - Query result caching with LRU cache
 - RAM disk for index storage
 - Field-specific BM25F weights tuning
