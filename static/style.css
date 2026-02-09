@@ -139,6 +139,13 @@ main {
     color: #444;
 }
 
+mark.highlight {
+    background-color: #fff3cd;
+    color: #333;
+    padding: 0.1em 0.2em;
+    border-radius: 2px;
+}
+
 .score {
     color: #27ae60;
     font-weight: bold;
