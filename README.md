@@ -33,7 +33,7 @@ This search engine allows users to search through 850,000+ COVID-19 research pap
 
 ## Project Structure
 
-```
+```bash
 cord19_search_engine/
 ├── data/
 │   ├── raw/                    # Original CORD-19 metadata.csv
@@ -332,7 +332,7 @@ Results on a typical 8-core system with 11GB RAM (850,367 documents indexed):
 
 ### Indexing Performance
 
-```
+```bash
 Loading processed data...
 Building index...
 Indexing: 100%|██████████| 850367/850367 [16:44<00:00, 846.85it/s]
@@ -346,7 +346,7 @@ Index created with 850367 documents
 
 ### Search Performance (Sample Queries)
 
-```
+```bash
 Query: 'COVID-19 vaccine efficacy'
   Results: 507,912 matches in 50-300ms
 
