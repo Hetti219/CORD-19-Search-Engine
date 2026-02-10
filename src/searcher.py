@@ -16,6 +16,7 @@ from whoosh.sorting import FieldFacet
 from whoosh.highlight import Highlighter, SentenceFragmenter, WholeFragmenter, HtmlFormatter
 
 VALID_SORT_OPTIONS = ("relevance", "date_desc", "date_asc")
+VALID_PER_PAGE_OPTIONS = (10, 25, 50)
 
 class CORD19Searcher:
     """
@@ -133,10 +134,11 @@ class CORD19Searcher:
             results = searcher.search(query, limit=limit, sortedby=sort_facet,
                                       filter=filter_query)
 
-            # Use estimated_length() for a more accurate total when limit caps results
-            scored = len(results)
-            estimated = results.estimated_length()
-            total = max(scored, estimated)
+            # Use scored (actual retrieved) count for pagination so every
+            # page is guaranteed to have results — estimated_length() can
+            # vastly overcount when limit caps the result set, creating
+            # empty "phantom" pages at the end.
+            total = len(results)
             total_pages = (total + results_per_page - 1) // results_per_page
 
             # Calculate slice for current page
@@ -144,7 +146,7 @@ class CORD19Searcher:
             end = start + results_per_page
 
             # Compute facets from top results for the sidebar
-            facets = self._extract_facets(results, min(scored, 200))
+            facets = self._extract_facets(results, min(total, 200))
 
             # Extract results for current page with highlighted query terms
             result_list = []
@@ -176,6 +178,8 @@ class CORD19Searcher:
                 'total': total,
                 'page': page,
                 'total_pages': total_pages,
+                'results_per_page': results_per_page,
+                'page_range': self._compute_page_range(page, total_pages),
                 'query': query_string,
                 'sort': sort_by,
                 'date_from': date_from or '',
@@ -224,6 +228,26 @@ class CORD19Searcher:
             "journals": [{"name": n, "count": c} for n, c in journal_counts.most_common(10)],
             "years": [{"year": y, "count": c} for y, c in sorted(year_counts.items(), reverse=True)],
         }
+
+    @staticmethod
+    def _compute_page_range(page, total_pages, window=2):
+        """Compute page numbers for Google-style pagination with ellipsis gaps.
+
+        Returns a list of ints and None values (None = ellipsis placeholder).
+        Example for page 6 of 20: [1, None, 4, 5, 6, 7, 8, None, 20]
+        """
+        if total_pages <= 1:
+            return []
+        pages = {1, total_pages}
+        for p in range(max(1, page - window), min(total_pages, page + window) + 1):
+            pages.add(p)
+        sorted_pages = sorted(pages)
+        result = []
+        for i, p in enumerate(sorted_pages):
+            if i > 0 and p - sorted_pages[i - 1] > 1:
+                result.append(None)
+            result.append(p)
+        return result
 
     @staticmethod
     def _truncate_at_sentence(text, max_length=300):

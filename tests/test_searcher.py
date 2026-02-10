@@ -14,7 +14,8 @@ def test_search_returns_dict(searcher):
     result = searcher.search("COVID")
     assert isinstance(result, dict)
     assert set(result.keys()) == {
-        "results", "total", "page", "total_pages", "query", "sort",
+        "results", "total", "page", "total_pages", "results_per_page",
+        "page_range", "query", "sort",
         "date_from", "date_to", "journal", "facets",
     }
 
@@ -367,6 +368,88 @@ def test_facets_years_sorted_descending(searcher):
     result = searcher.search("vaccine")
     years = [y["year"] for y in result["facets"]["years"]]
     assert years == sorted(years, reverse=True)
+
+
+# ── Results per page ─────────────────────────────────────────────────────
+
+def test_results_per_page_default(searcher):
+    """Default results_per_page is 10."""
+    result = searcher.search("vaccine")
+    assert result["results_per_page"] == 10
+
+
+def test_results_per_page_custom(searcher):
+    """Custom results_per_page value is respected and echoed."""
+    result = searcher.search("vaccine", results_per_page=25)
+    assert result["results_per_page"] == 25
+    assert len(result["results"]) <= 25
+
+
+def test_results_per_page_limits_results(searcher):
+    """Requesting 2 per page returns at most 2 results."""
+    result = searcher.search("COVID", results_per_page=2)
+    assert len(result["results"]) <= 2
+
+
+def test_results_per_page_affects_total_pages(searcher):
+    """Fewer results per page means more total pages."""
+    small = searcher.search("COVID", results_per_page=2)
+    large = searcher.search("COVID", results_per_page=50)
+    assert small["total_pages"] >= large["total_pages"]
+
+
+# ── Page range (numbered pagination) ────────────────────────────────────
+
+def test_page_range_returned(searcher):
+    """Search results include a page_range list."""
+    result = searcher.search("vaccine")
+    assert isinstance(result["page_range"], list)
+
+
+def test_page_range_single_page(searcher):
+    """Single-page results produce an empty page_range."""
+    result = searcher.search("vaccine", results_per_page=50)
+    # With only 8 docs, 50 per page = 1 page total
+    assert result["page_range"] == []
+
+
+def test_page_range_multi_page(searcher):
+    """Multi-page results produce a page_range with numbered entries."""
+    result = searcher.search("COVID", results_per_page=2)
+    assert len(result["page_range"]) > 0
+    # First entry should be page 1
+    assert result["page_range"][0] == 1
+    # Last entry should be total_pages
+    nums = [p for p in result["page_range"] if p is not None]
+    assert nums[-1] == result["total_pages"]
+
+
+def test_page_range_contains_current_page(searcher):
+    """The current page is always included in page_range."""
+    result = searcher.search("COVID", page=2, results_per_page=2)
+    assert 2 in result["page_range"]
+
+
+def test_compute_page_range_ellipsis():
+    """Pages with large gaps include None (ellipsis) placeholders."""
+    page_range = CORD19Searcher._compute_page_range(page=10, total_pages=20, window=2)
+    # Should include: 1, None, 8, 9, 10, 11, 12, None, 20
+    assert 1 in page_range
+    assert 20 in page_range
+    assert 10 in page_range
+    assert None in page_range
+
+
+def test_compute_page_range_small_total():
+    """When total_pages is small, no ellipsis needed."""
+    page_range = CORD19Searcher._compute_page_range(page=2, total_pages=4, window=2)
+    assert None not in page_range
+    assert page_range == [1, 2, 3, 4]
+
+
+def test_compute_page_range_single_page():
+    """Single page returns empty list."""
+    assert CORD19Searcher._compute_page_range(page=1, total_pages=1) == []
 
 
 # ── get_index_stats ─────────────────────────────────────────────────────────

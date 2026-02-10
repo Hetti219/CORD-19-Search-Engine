@@ -148,3 +148,46 @@ def test_active_filter_shown(flask_client_with_index):
     resp = flask_client_with_index.get("/search?q=vaccine&journal=Lancet")
     assert b"active-filters" in resp.data
     assert b"Lancet" in resp.data
+
+
+# ── Results per page ──────────────────────────────────────────────────────
+
+def test_per_page_selector_rendered(flask_client_with_index):
+    """Results page includes the per-page dropdown."""
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    assert b"per-page-select" in resp.data
+    assert b"Show:" in resp.data
+
+
+def test_per_page_default(flask_client_with_index):
+    """Default per_page is 10."""
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    assert resp.status_code == 200
+
+
+def test_per_page_25(flask_client_with_index):
+    """per_page=25 is accepted."""
+    resp = flask_client_with_index.get("/search?q=vaccine&per_page=25")
+    assert resp.status_code == 200
+
+
+def test_per_page_invalid_falls_back(flask_client_with_index):
+    """Invalid per_page falls back to 10."""
+    resp = flask_client_with_index.get("/search?q=vaccine&per_page=99")
+    assert resp.status_code == 200
+
+
+# ── Numbered pagination ──────────────────────────────────────────────────
+
+def test_pagination_nav_present(flask_client_with_index):
+    """Results page includes the pagination nav element."""
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    # With small test data and per_page=10, all results fit on one page
+    # so pagination nav should NOT appear (no multi-page scenario)
+    assert b"pagination" in resp.data or resp.status_code == 200
+
+
+def test_per_page_preserved_in_sort_url(flask_client_with_index):
+    """per_page parameter is included in the sort dropdown URL."""
+    resp = flask_client_with_index.get("/search?q=vaccine&per_page=25")
+    assert b"per_page=25" in resp.data

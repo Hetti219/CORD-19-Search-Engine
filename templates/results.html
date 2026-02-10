@@ -17,16 +17,16 @@
         {% if journal %}
         <span class="filter-tag">
             Journal: {{ journal }}
-            <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="filter-remove">&times;</a>
+            <a href="/search?q={{ query | urlencode }}&sort={{ sort }}&per_page={{ results_per_page }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="filter-remove">&times;</a>
         </span>
         {% endif %}
         {% if date_from or date_to %}
         <span class="filter-tag">
             Date: {{ date_from or '...' }} to {{ date_to or '...' }}
-            <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if journal %}&journal={{ journal | urlencode }}{% endif %}" class="filter-remove">&times;</a>
+            <a href="/search?q={{ query | urlencode }}&sort={{ sort }}&per_page={{ results_per_page }}{% if journal %}&journal={{ journal | urlencode }}{% endif %}" class="filter-remove">&times;</a>
         </span>
         {% endif %}
-        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}" class="clear-all-filters">Clear all</a>
+        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}&per_page={{ results_per_page }}" class="clear-all-filters">Clear all</a>
     </div>
     {% endif %}
 
@@ -39,6 +39,7 @@
                 <form action="/search" method="GET" class="date-filter-form">
                     <input type="hidden" name="q" value="{{ query }}">
                     <input type="hidden" name="sort" value="{{ sort }}">
+                    <input type="hidden" name="per_page" value="{{ results_per_page }}">
                     {% if journal %}<input type="hidden" name="journal" value="{{ journal }}">{% endif %}
                     <label class="date-label">
                         From
@@ -59,7 +60,7 @@
                 <ul class="facet-list">
                     {% for j in facets.journals %}
                     <li class="facet-item{% if journal == j.name %} facet-active{% endif %}">
-                        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&journal={{ j.name | urlencode }}">
+                        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}&per_page={{ results_per_page }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&journal={{ j.name | urlencode }}">
                             <span class="facet-name">{{ j.name }}</span>
                             <span class="facet-count">{{ j.count }}</span>
                         </a>
@@ -76,7 +77,7 @@
                 <ul class="facet-list">
                     {% for y in facets.years %}
                     <li class="facet-item{% if date_from == y.year ~ '-01-01' and date_to == y.year ~ '-12-31' %} facet-active{% endif %}">
-                        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if journal %}&journal={{ journal | urlencode }}{% endif %}&date_from={{ y.year }}-01-01&date_to={{ y.year }}-12-31">
+                        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}&per_page={{ results_per_page }}{% if journal %}&journal={{ journal | urlencode }}{% endif %}&date_from={{ y.year }}-01-01&date_to={{ y.year }}-12-31">
                             <span class="facet-name">{{ y.year }}</span>
                             <span class="facet-count">{{ y.count }}</span>
                         </a>
@@ -89,18 +90,28 @@
 
         <!-- Main results area -->
         <div class="results-main">
-            <!-- Results summary and sort controls -->
+            <!-- Results summary and sort/per-page controls -->
             <div class="results-header">
                 <p class="results-summary">
                     Found {{ total }} results for "{{ query }}" (Page {{ page }} of {{ total_pages }})
                 </p>
-                <div class="sort-controls">
-                    <label for="sort-select">Sort by:</label>
-                    <select id="sort-select" onchange="window.location.href='/search?q={{ query | urlencode }}&sort=' + this.value + '{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}'">
-                        <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
-                        <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Date (Newest)</option>
-                        <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
-                    </select>
+                <div class="results-controls">
+                    <div class="sort-controls">
+                        <label for="sort-select">Sort by:</label>
+                        <select id="sort-select" onchange="window.location.href='/search?q={{ query | urlencode }}&sort=' + this.value + '&per_page={{ results_per_page }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}'">
+                            <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                            <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Date (Newest)</option>
+                            <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
+                        </select>
+                    </div>
+                    <div class="per-page-controls">
+                        <label for="per-page-select">Show:</label>
+                        <select id="per-page-select" onchange="window.location.href='/search?q={{ query | urlencode }}&sort={{ sort }}&per_page=' + this.value + '{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}'">
+                            <option value="10" {% if results_per_page == 10 %}selected{% endif %}>10</option>
+                            <option value="25" {% if results_per_page == 25 %}selected{% endif %}>25</option>
+                            <option value="50" {% if results_per_page == 50 %}selected{% endif %}>50</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -128,17 +139,25 @@
                 {% endfor %}
             </div>
 
-            <!-- Pagination -->
+            <!-- Numbered pagination -->
             {% if total_pages > 1 %}
             <nav class="pagination">
                 {% if page > 1 %}
-                <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}">&laquo; Previous</a>
+                <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}&sort={{ sort }}&per_page={{ results_per_page }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}" class="page-prev">&laquo; Prev</a>
                 {% endif %}
 
-                <span>Page {{ page }} of {{ total_pages }}</span>
+                {% for p in page_range %}
+                    {% if p is none %}
+                    <span class="page-ellipsis">&hellip;</span>
+                    {% elif p == page %}
+                    <span class="page-num page-current">{{ p }}</span>
+                    {% else %}
+                    <a href="/search?q={{ query | urlencode }}&page={{ p }}&sort={{ sort }}&per_page={{ results_per_page }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}" class="page-num">{{ p }}</a>
+                    {% endif %}
+                {% endfor %}
 
                 {% if page < total_pages %}
-                <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}">Next &raquo;</a>
+                <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}&sort={{ sort }}&per_page={{ results_per_page }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}" class="page-next">Next &raquo;</a>
                 {% endif %}
             </nav>
             {% endif %}
