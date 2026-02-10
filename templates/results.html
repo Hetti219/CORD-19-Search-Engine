@@ -10,10 +10,20 @@
         <button type="submit" class="search-button">Search</button>
     </form>
 
-    <!-- Results summary -->
-    <p class="results-summary">
-        Found {{ total }} results for "{{ query }}" (Page {{ page }} of {{ total_pages }})
-    </p>
+    <!-- Results summary and sort controls -->
+    <div class="results-header">
+        <p class="results-summary">
+            Found {{ total }} results for "{{ query }}" (Page {{ page }} of {{ total_pages }})
+        </p>
+        <div class="sort-controls">
+            <label for="sort-select">Sort by:</label>
+            <select id="sort-select" onchange="window.location.href='/search?q={{ query | urlencode }}&sort=' + this.value">
+                <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Date (Newest)</option>
+                <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
+            </select>
+        </div>
+    </div>
 
     <!-- Results list -->
     <div class="results-list">
@@ -43,13 +53,13 @@
     {% if total_pages > 1 %}
     <nav class="pagination">
         {% if page > 1 %}
-        <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}">&laquo; Previous</a>
+        <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}&sort={{ sort }}">&laquo; Previous</a>
         {% endif %}
 
         <span>Page {{ page }} of {{ total_pages }}</span>
 
         {% if page < total_pages %}
-        <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}">Next &raquo;</a>
+        <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}&sort={{ sort }}">Next &raquo;</a>
         {% endif %}
     </nav>
     {% endif %}
