@@ -117,3 +117,34 @@ def test_sort_date_desc(flask_client_with_index):
     resp = flask_client_with_index.get("/search?q=vaccine&sort=date_desc")
     assert resp.status_code == 200
     assert b"date_desc" in resp.data
+
+
+# ── Filter parameters ────────────────────────────────────────────────────
+
+def test_date_range_filter(flask_client_with_index):
+    """Date range parameters are accepted and return 200."""
+    resp = flask_client_with_index.get(
+        "/search?q=vaccine&date_from=2020-01-01&date_to=2021-12-31"
+    )
+    assert resp.status_code == 200
+
+
+def test_journal_filter(flask_client_with_index):
+    """Journal filter parameter is accepted and return 200."""
+    resp = flask_client_with_index.get("/search?q=vaccine&journal=Lancet")
+    assert resp.status_code == 200
+
+
+def test_filter_sidebar_rendered(flask_client_with_index):
+    """Results page includes the filter sidebar elements."""
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    assert b"filter-sidebar" in resp.data
+    assert b"Date Range" in resp.data
+    assert b"filter-apply-btn" in resp.data
+
+
+def test_active_filter_shown(flask_client_with_index):
+    """When a journal filter is active, the active-filters bar is shown."""
+    resp = flask_client_with_index.get("/search?q=vaccine&journal=Lancet")
+    assert b"active-filters" in resp.data
+    assert b"Lancet" in resp.data
