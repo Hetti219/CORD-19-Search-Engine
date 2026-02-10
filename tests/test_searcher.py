@@ -13,7 +13,10 @@ from constants import EXPECTED_DOC_COUNT
 def test_search_returns_dict(searcher):
     result = searcher.search("COVID")
     assert isinstance(result, dict)
-    assert set(result.keys()) == {"results", "total", "page", "total_pages", "query", "sort"}
+    assert set(result.keys()) == {
+        "results", "total", "page", "total_pages", "query", "sort",
+        "date_from", "date_to", "journal", "facets",
+    }
 
 
 def test_search_query_echoed(searcher):
@@ -259,6 +262,111 @@ def test_sort_preserves_results(searcher):
     uids_new = {r["cord_uid"] for r in newest["results"]}
     uids_old = {r["cord_uid"] for r in oldest["results"]}
     assert uids_rel == uids_new == uids_old
+
+
+# ── Date range filtering ──────────────────────────────────────────────────
+
+def test_date_from_filters_old_papers(searcher):
+    """date_from excludes papers published before the given date."""
+    all_results = searcher.search("vaccine")
+    filtered = searcher.search("vaccine", date_from="2021-01-01")
+    # Every returned paper should have publish_time >= 2021-01-01
+    for r in filtered["results"]:
+        assert r["publish_time"] >= "2021-01-01"
+    assert filtered["total"] <= all_results["total"]
+
+
+def test_date_to_filters_new_papers(searcher):
+    """date_to excludes papers published after the given date."""
+    filtered = searcher.search("vaccine", date_to="2020-12-31")
+    for r in filtered["results"]:
+        assert r["publish_time"] <= "2020-12-31"
+
+
+def test_date_range_combined(searcher):
+    """Combining date_from and date_to returns only papers in that window."""
+    filtered = searcher.search("vaccine", date_from="2020-01-01", date_to="2020-12-31")
+    for r in filtered["results"]:
+        assert "2020" <= r["publish_time"][:4] <= "2020"
+
+
+def test_date_range_no_match(searcher):
+    """A date range with no matching papers returns zero results."""
+    result = searcher.search("vaccine", date_from="2025-01-01", date_to="2025-12-31")
+    assert result["total"] == 0
+    assert result["results"] == []
+
+
+def test_date_range_values_returned(searcher):
+    """date_from and date_to are echoed back in the result dict."""
+    result = searcher.search("vaccine", date_from="2020-06-01", date_to="2021-06-01")
+    assert result["date_from"] == "2020-06-01"
+    assert result["date_to"] == "2021-06-01"
+
+
+# ── Journal filtering ────────────────────────────────────────────────────
+
+def test_journal_filter(searcher):
+    """Filtering by journal returns only papers from that journal."""
+    result = searcher.search("vaccine", journal="Lancet")
+    assert result["total"] > 0
+    for r in result["results"]:
+        assert r["journal"] == "Lancet"
+
+
+def test_journal_filter_no_match(searcher):
+    """Filtering by a non-existent journal returns zero results."""
+    result = searcher.search("vaccine", journal="Nonexistent Journal")
+    assert result["total"] == 0
+
+
+def test_journal_filter_value_returned(searcher):
+    """Active journal filter is echoed back in the result dict."""
+    result = searcher.search("vaccine", journal="Science")
+    assert result["journal"] == "Science"
+
+
+def test_journal_and_date_combined(searcher):
+    """Journal and date filters can be combined."""
+    result = searcher.search("vaccine", journal="Lancet", date_from="2021-01-01")
+    for r in result["results"]:
+        assert r["journal"] == "Lancet"
+        assert r["publish_time"] >= "2021-01-01"
+
+
+# ── Facets ────────────────────────────────────────────────────────────────
+
+def test_facets_returned(searcher):
+    """Search results include facets with journals and years."""
+    result = searcher.search("vaccine")
+    assert "facets" in result
+    assert "journals" in result["facets"]
+    assert "years" in result["facets"]
+
+
+def test_facets_journal_structure(searcher):
+    """Each journal facet has name and count keys."""
+    result = searcher.search("vaccine")
+    for j in result["facets"]["journals"]:
+        assert "name" in j
+        assert "count" in j
+        assert j["count"] > 0
+
+
+def test_facets_year_structure(searcher):
+    """Each year facet has year and count keys."""
+    result = searcher.search("vaccine")
+    for y in result["facets"]["years"]:
+        assert "year" in y
+        assert "count" in y
+        assert y["count"] > 0
+
+
+def test_facets_years_sorted_descending(searcher):
+    """Year facets are sorted newest-first."""
+    result = searcher.search("vaccine")
+    years = [y["year"] for y in result["facets"]["years"]]
+    assert years == sorted(years, reverse=True)
 
 
 # ── get_index_stats ─────────────────────────────────────────────────────────
