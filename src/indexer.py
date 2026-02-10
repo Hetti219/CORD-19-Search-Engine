@@ -41,7 +41,8 @@ def create_schema():
 
         # STORED fields: returned in results but not searchable
         authors=STORED(),
-        journal=STORED(),
+        # ID with stored=True enables exact-match journal filtering for faceted search
+        journal=ID(stored=True),
         # ID with sortable=True enables sort-by-date (ISO dates sort lexicographically)
         publish_time=ID(stored=True, sortable=True)
     )

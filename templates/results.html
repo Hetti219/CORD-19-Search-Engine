@@ -10,58 +10,139 @@
         <button type="submit" class="search-button">Search</button>
     </form>
 
-    <!-- Results summary and sort controls -->
-    <div class="results-header">
-        <p class="results-summary">
-            Found {{ total }} results for "{{ query }}" (Page {{ page }} of {{ total_pages }})
-        </p>
-        <div class="sort-controls">
-            <label for="sort-select">Sort by:</label>
-            <select id="sort-select" onchange="window.location.href='/search?q={{ query | urlencode }}&sort=' + this.value">
-                <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
-                <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Date (Newest)</option>
-                <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
-            </select>
+    <!-- Active filters -->
+    {% if journal or date_from or date_to %}
+    <div class="active-filters">
+        <span class="active-filters-label">Active filters:</span>
+        {% if journal %}
+        <span class="filter-tag">
+            Journal: {{ journal }}
+            <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="filter-remove">&times;</a>
+        </span>
+        {% endif %}
+        {% if date_from or date_to %}
+        <span class="filter-tag">
+            Date: {{ date_from or '...' }} to {{ date_to or '...' }}
+            <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if journal %}&journal={{ journal | urlencode }}{% endif %}" class="filter-remove">&times;</a>
+        </span>
+        {% endif %}
+        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}" class="clear-all-filters">Clear all</a>
+    </div>
+    {% endif %}
+
+    <div class="search-layout">
+        <!-- Filter sidebar -->
+        <aside class="filter-sidebar">
+            <!-- Date range filter -->
+            <div class="filter-section">
+                <h3 class="filter-heading">Date Range</h3>
+                <form action="/search" method="GET" class="date-filter-form">
+                    <input type="hidden" name="q" value="{{ query }}">
+                    <input type="hidden" name="sort" value="{{ sort }}">
+                    {% if journal %}<input type="hidden" name="journal" value="{{ journal }}">{% endif %}
+                    <label class="date-label">
+                        From
+                        <input type="date" name="date_from" value="{{ date_from }}" class="date-input">
+                    </label>
+                    <label class="date-label">
+                        To
+                        <input type="date" name="date_to" value="{{ date_to }}" class="date-input">
+                    </label>
+                    <button type="submit" class="filter-apply-btn">Apply</button>
+                </form>
+            </div>
+
+            <!-- Journal facets -->
+            {% if facets and facets.journals %}
+            <div class="filter-section">
+                <h3 class="filter-heading">Journal</h3>
+                <ul class="facet-list">
+                    {% for j in facets.journals %}
+                    <li class="facet-item{% if journal == j.name %} facet-active{% endif %}">
+                        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}&journal={{ j.name | urlencode }}">
+                            <span class="facet-name">{{ j.name }}</span>
+                            <span class="facet-count">{{ j.count }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Year facets -->
+            {% if facets and facets.years %}
+            <div class="filter-section">
+                <h3 class="filter-heading">Year</h3>
+                <ul class="facet-list">
+                    {% for y in facets.years %}
+                    <li class="facet-item{% if date_from == y.year ~ '-01-01' and date_to == y.year ~ '-12-31' %} facet-active{% endif %}">
+                        <a href="/search?q={{ query | urlencode }}&sort={{ sort }}{% if journal %}&journal={{ journal | urlencode }}{% endif %}&date_from={{ y.year }}-01-01&date_to={{ y.year }}-12-31">
+                            <span class="facet-name">{{ y.year }}</span>
+                            <span class="facet-count">{{ y.count }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </aside>
+
+        <!-- Main results area -->
+        <div class="results-main">
+            <!-- Results summary and sort controls -->
+            <div class="results-header">
+                <p class="results-summary">
+                    Found {{ total }} results for "{{ query }}" (Page {{ page }} of {{ total_pages }})
+                </p>
+                <div class="sort-controls">
+                    <label for="sort-select">Sort by:</label>
+                    <select id="sort-select" onchange="window.location.href='/search?q={{ query | urlencode }}&sort=' + this.value + '{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}'">
+                        <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                        <option value="date_desc" {% if sort == 'date_desc' %}selected{% endif %}>Date (Newest)</option>
+                        <option value="date_asc" {% if sort == 'date_asc' %}selected{% endif %}>Date (Oldest)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Results list -->
+            <div class="results-list">
+                {% for result in results %}
+                <article class="result-item">
+                    <h2 class="result-title">
+                        {% if result.url %}
+                        <a href="{{ result.url }}" target="_blank">{{ result.title | safe }}</a>
+                        {% else %}
+                        {{ result.title | safe }}
+                        {% endif %}
+                    </h2>
+                    <p class="result-meta">
+                        <span class="authors">{{ result.authors[:100] }}{% if result.authors|length > 100 %}...{% endif %}</span>
+                        | <span class="journal">{{ result.journal }}</span>
+                        | <span class="date">{{ result.publish_time }}</span>
+                        | <span class="score">Score: {{ "%.2f"|format(result.score) }}</span>
+                    </p>
+                    <p class="result-abstract">{{ result.abstract | safe }}</p>
+                </article>
+                {% else %}
+                <p class="no-results">No results found for "{{ query }}"</p>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <nav class="pagination">
+                {% if page > 1 %}
+                <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}">&laquo; Previous</a>
+                {% endif %}
+
+                <span>Page {{ page }} of {{ total_pages }}</span>
+
+                {% if page < total_pages %}
+                <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}&sort={{ sort }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if journal %}&journal={{ journal | urlencode }}{% endif %}">Next &raquo;</a>
+                {% endif %}
+            </nav>
+            {% endif %}
         </div>
     </div>
-
-    <!-- Results list -->
-    <div class="results-list">
-        {% for result in results %}
-        <article class="result-item">
-            <h2 class="result-title">
-                {% if result.url %}
-                <a href="{{ result.url }}" target="_blank">{{ result.title | safe }}</a>
-                {% else %}
-                {{ result.title | safe }}
-                {% endif %}
-            </h2>
-            <p class="result-meta">
-                <span class="authors">{{ result.authors[:100] }}{% if result.authors|length > 100 %}...{% endif %}</span>
-                | <span class="journal">{{ result.journal }}</span>
-                | <span class="date">{{ result.publish_time }}</span>
-                | <span class="score">Score: {{ "%.2f"|format(result.score) }}</span>
-            </p>
-            <p class="result-abstract">{{ result.abstract | safe }}</p>
-        </article>
-        {% else %}
-        <p class="no-results">No results found for "{{ query }}"</p>
-        {% endfor %}
-    </div>
-
-    <!-- Pagination -->
-    {% if total_pages > 1 %}
-    <nav class="pagination">
-        {% if page > 1 %}
-        <a href="/search?q={{ query | urlencode }}&page={{ page - 1 }}&sort={{ sort }}">&laquo; Previous</a>
-        {% endif %}
-
-        <span>Page {{ page }} of {{ total_pages }}</span>
-
-        {% if page < total_pages %}
-        <a href="/search?q={{ query | urlencode }}&page={{ page + 1 }}&sort={{ sort }}">Next &raquo;</a>
-        {% endif %}
-    </nav>
-    {% endif %}
 </div>
 {% endblock %}

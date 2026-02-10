@@ -48,6 +48,9 @@ def search():
         q: Search query string
         page: Page number (default: 1)
         sort: Sort order — relevance, date_desc, date_asc (default: relevance)
+        date_from: Start date filter (YYYY-MM-DD)
+        date_to: End date filter (YYYY-MM-DD)
+        journal: Exact journal name filter
     """
     if searcher is None:
         return render_template('setup.html')
@@ -55,16 +58,23 @@ def search():
     query = request.args.get('q', '').strip()
     page = max(1, request.args.get('page', 1, type=int))
     sort = request.args.get('sort', 'relevance')
+    date_from = request.args.get('date_from', '').strip() or None
+    date_to = request.args.get('date_to', '').strip() or None
+    journal = request.args.get('journal', '').strip() or None
 
     if not query:
         return render_template('search.html', stats=searcher.get_index_stats())
 
     # Execute search with error handling for malformed queries
     try:
-        results = searcher.search(query, page=page, results_per_page=10, sort_by=sort)
+        results = searcher.search(query, page=page, results_per_page=10,
+                                  sort_by=sort, date_from=date_from,
+                                  date_to=date_to, journal=journal)
     except Exception:
         return render_template('results.html', results=[], total=0, page=1,
-                               total_pages=0, query=query, sort='relevance')
+                               total_pages=0, query=query, sort='relevance',
+                               date_from='', date_to='', journal='',
+                               facets={'journals': [], 'years': []})
 
     return render_template('results.html', **results)
 

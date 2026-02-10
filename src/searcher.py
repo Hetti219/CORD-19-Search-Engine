@@ -6,8 +6,11 @@ BM25 (Best Matching 25) is the ranking algorithm used.
 This is the core RETRIEVAL FUNCTION for your search engine.
 """
 
+from collections import Counter
+
 from whoosh import index
 from whoosh.qparser import MultifieldParser, OrGroup
+from whoosh.query import Term, TermRange, And
 from whoosh.scoring import BM25F
 from whoosh.sorting import FieldFacet
 from whoosh.highlight import Highlighter, SentenceFragmenter, WholeFragmenter, HtmlFormatter
@@ -49,7 +52,8 @@ class CORD19Searcher:
             formatter=formatter
         )
 
-    def search(self, query_string, page=1, results_per_page=10, sort_by="relevance"):
+    def search(self, query_string, page=1, results_per_page=10, sort_by="relevance",
+               date_from=None, date_to=None, journal=None):
         """
         Execute a search query and return ranked results.
 
@@ -59,6 +63,9 @@ class CORD19Searcher:
             results_per_page: Number of results per page
             sort_by: Sort order — "relevance" (BM25F score, default),
                      "date_desc" (newest first), or "date_asc" (oldest first)
+            date_from: Start date for filtering (ISO format YYYY-MM-DD)
+            date_to: End date for filtering (ISO format YYYY-MM-DD)
+            journal: Exact journal name to filter by
 
         Returns:
             dict containing:
@@ -67,6 +74,9 @@ class CORD19Searcher:
                 - page: Current page number
                 - total_pages: Total number of pages
                 - sort: Active sort option
+                - date_from/date_to: Active date filter values
+                - journal: Active journal filter
+                - facets: Dict with top journals and years
 
         RANKING EXPLANATION (for report):
         -----------------------------------
@@ -116,8 +126,12 @@ class CORD19Searcher:
             elif sort_by == "date_asc":
                 sort_facet = FieldFacet("publish_time", reverse=False)
 
+            # Build filter query from active filters
+            filter_query = self._build_filter_query(date_from, date_to, journal)
+
             # Execute search with optimized limit
-            results = searcher.search(query, limit=limit, sortedby=sort_facet)
+            results = searcher.search(query, limit=limit, sortedby=sort_facet,
+                                      filter=filter_query)
 
             # Use estimated_length() for a more accurate total when limit caps results
             scored = len(results)
@@ -128,6 +142,9 @@ class CORD19Searcher:
             # Calculate slice for current page
             start = (page - 1) * results_per_page
             end = start + results_per_page
+
+            # Compute facets from top results for the sidebar
+            facets = self._extract_facets(results, min(scored, 200))
 
             # Extract results for current page with highlighted query terms
             result_list = []
@@ -160,8 +177,53 @@ class CORD19Searcher:
                 'page': page,
                 'total_pages': total_pages,
                 'query': query_string,
-                'sort': sort_by
+                'sort': sort_by,
+                'date_from': date_from or '',
+                'date_to': date_to or '',
+                'journal': journal or '',
+                'facets': facets
             }
+
+    @staticmethod
+    def _build_filter_query(date_from, date_to, journal):
+        """Build a Whoosh filter query from active filter parameters.
+
+        Returns a combined And query, or None if no filters are active.
+        """
+        filters = []
+        if date_from or date_to:
+            filters.append(TermRange("publish_time", date_from, date_to))
+        if journal:
+            filters.append(Term("journal", journal))
+        if not filters:
+            return None
+        return filters[0] if len(filters) == 1 else And(filters)
+
+    @staticmethod
+    def _extract_facets(results, sample_size):
+        """Extract journal and year facet counts from the top search results.
+
+        Args:
+            results: Whoosh Results object
+            sample_size: Number of results to sample for facet counting
+
+        Returns:
+            dict with 'journals' (list of {name, count}) and
+            'years' (list of {year, count}), both sorted by count descending.
+        """
+        journal_counts = Counter()
+        year_counts = Counter()
+        for hit in results[0:sample_size]:
+            j = hit.get("journal", "") or ""
+            if j and j.lower() not in ("unknown", "nan", ""):
+                journal_counts[j] += 1
+            pt = hit.get("publish_time", "") or ""
+            if len(pt) >= 4 and pt[:4].isdigit():
+                year_counts[pt[:4]] += 1
+        return {
+            "journals": [{"name": n, "count": c} for n, c in journal_counts.most_common(10)],
+            "years": [{"year": y, "count": c} for y, c in sorted(year_counts.items(), reverse=True)],
+        }
 
     @staticmethod
     def _truncate_at_sentence(text, max_length=300):
