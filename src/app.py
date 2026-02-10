@@ -7,6 +7,7 @@ This is the PRESENTATION LAYER of your search engine.
 
 import os
 import sys
+import time
 from flask import Flask, render_template, request
 from whoosh.index import EmptyIndexError
 
@@ -71,13 +72,16 @@ def search():
 
     # Execute search with error handling for malformed queries
     try:
+        t0 = time.perf_counter()
         results = searcher.search(query, page=page, results_per_page=per_page,
                                   sort_by=sort, date_from=date_from,
                                   date_to=date_to, journal=journal)
+        results['search_time'] = round(time.perf_counter() - t0, 3)
     except Exception:
         return render_template('results.html', results=[], total=0, page=1,
                                total_pages=0, results_per_page=per_page,
                                page_range=[], query=query, sort='relevance',
+                               search_time=0,
                                date_from='', date_to='', journal='',
                                facets={'journals': [], 'years': []})
 

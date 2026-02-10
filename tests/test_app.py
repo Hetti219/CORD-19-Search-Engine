@@ -191,3 +191,21 @@ def test_per_page_preserved_in_sort_url(flask_client_with_index):
     """per_page parameter is included in the sort dropdown URL."""
     resp = flask_client_with_index.get("/search?q=vaccine&per_page=25")
     assert b"per_page=25" in resp.data
+
+
+# ── Search response time ─────────────────────────────────────────────────
+
+def test_search_time_displayed(flask_client_with_index):
+    """Results page shows the search response time in seconds."""
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    assert b"seconds" in resp.data
+
+
+def test_search_time_is_numeric(flask_client_with_index):
+    """The displayed search time is a valid number."""
+    import re
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    html = resp.data.decode()
+    match = re.search(r'in (\d+\.\d+) seconds', html)
+    assert match is not None
+    assert float(match.group(1)) >= 0
