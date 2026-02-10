@@ -9,7 +9,10 @@ This is the core RETRIEVAL FUNCTION for your search engine.
 from whoosh import index
 from whoosh.qparser import MultifieldParser, OrGroup
 from whoosh.scoring import BM25F
+from whoosh.sorting import FieldFacet
 from whoosh.highlight import Highlighter, SentenceFragmenter, WholeFragmenter, HtmlFormatter
+
+VALID_SORT_OPTIONS = ("relevance", "date_desc", "date_asc")
 
 class CORD19Searcher:
     """
@@ -46,7 +49,7 @@ class CORD19Searcher:
             formatter=formatter
         )
 
-    def search(self, query_string, page=1, results_per_page=10):
+    def search(self, query_string, page=1, results_per_page=10, sort_by="relevance"):
         """
         Execute a search query and return ranked results.
 
@@ -54,6 +57,8 @@ class CORD19Searcher:
             query_string: User's search query
             page: Page number for pagination (1-indexed)
             results_per_page: Number of results per page
+            sort_by: Sort order — "relevance" (BM25F score, default),
+                     "date_desc" (newest first), or "date_asc" (oldest first)
 
         Returns:
             dict containing:
@@ -61,6 +66,7 @@ class CORD19Searcher:
                 - total: Total number of matches
                 - page: Current page number
                 - total_pages: Total number of pages
+                - sort: Active sort option
 
         RANKING EXPLANATION (for report):
         -----------------------------------
@@ -85,6 +91,9 @@ class CORD19Searcher:
         3. Term rarity (rare terms are more discriminating)
         """
 
+        if sort_by not in VALID_SORT_OPTIONS:
+            sort_by = "relevance"
+
         # Parse the query string
         query = self.parser.parse(query_string)
 
@@ -100,8 +109,15 @@ class CORD19Searcher:
             if limit > 10000:
                 limit = 10000
 
+            # Determine sort order
+            sort_facet = None
+            if sort_by == "date_desc":
+                sort_facet = FieldFacet("publish_time", reverse=True)
+            elif sort_by == "date_asc":
+                sort_facet = FieldFacet("publish_time", reverse=False)
+
             # Execute search with optimized limit
-            results = searcher.search(query, limit=limit)
+            results = searcher.search(query, limit=limit, sortedby=sort_facet)
 
             # Use estimated_length() for a more accurate total when limit caps results
             scored = len(results)
@@ -135,7 +151,7 @@ class CORD19Searcher:
                     'journal': hit.get('journal', 'Unknown'),
                     'publish_time': hit.get('publish_time', 'Unknown'),
                     'url': hit.get('url', ''),
-                    'score': hit.score  # BM25 score
+                    'score': hit.score if isinstance(hit.score, (int, float)) else 0.0
                 })
 
             return {
@@ -143,7 +159,8 @@ class CORD19Searcher:
                 'total': total,
                 'page': page,
                 'total_pages': total_pages,
-                'query': query_string
+                'query': query_string,
+                'sort': sort_by
             }
 
     @staticmethod

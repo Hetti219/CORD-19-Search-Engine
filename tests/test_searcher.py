@@ -13,7 +13,7 @@ from constants import EXPECTED_DOC_COUNT
 def test_search_returns_dict(searcher):
     result = searcher.search("COVID")
     assert isinstance(result, dict)
-    assert set(result.keys()) == {"results", "total", "page", "total_pages", "query"}
+    assert set(result.keys()) == {"results", "total", "page", "total_pages", "query", "sort"}
 
 
 def test_search_query_echoed(searcher):
@@ -216,6 +216,49 @@ def test_truncate_at_sentence_no_boundary():
     result = CORD19Searcher._truncate_at_sentence(text, max_length=50)
     assert result.endswith("...")
     assert len(result) <= 53  # 50 + "..."
+
+
+# ── Sort options ──────────────────────────────────────────────────────────
+
+def test_sort_default_is_relevance(searcher):
+    """Default sort is by BM25F relevance score."""
+    result = searcher.search("vaccine")
+    assert result["sort"] == "relevance"
+
+
+def test_sort_date_desc(searcher):
+    """Newest-first sorting returns papers ordered by publish_time descending."""
+    result = searcher.search("vaccine", sort_by="date_desc")
+    assert result["sort"] == "date_desc"
+    dates = [r["publish_time"] for r in result["results"]]
+    assert dates == sorted(dates, reverse=True)
+
+
+def test_sort_date_asc(searcher):
+    """Oldest-first sorting returns papers ordered by publish_time ascending."""
+    result = searcher.search("vaccine", sort_by="date_asc")
+    assert result["sort"] == "date_asc"
+    dates = [r["publish_time"] for r in result["results"]]
+    assert dates == sorted(dates)
+
+
+def test_sort_invalid_falls_back_to_relevance(searcher):
+    """Invalid sort parameter falls back to relevance."""
+    result = searcher.search("vaccine", sort_by="invalid_option")
+    assert result["sort"] == "relevance"
+
+
+def test_sort_preserves_results(searcher):
+    """All sort options return the same result set (different order)."""
+    relevance = searcher.search("vaccine", sort_by="relevance")
+    newest = searcher.search("vaccine", sort_by="date_desc")
+    oldest = searcher.search("vaccine", sort_by="date_asc")
+    # Same total and same UIDs regardless of sort
+    assert relevance["total"] == newest["total"] == oldest["total"]
+    uids_rel = {r["cord_uid"] for r in relevance["results"]}
+    uids_new = {r["cord_uid"] for r in newest["results"]}
+    uids_old = {r["cord_uid"] for r in oldest["results"]}
+    assert uids_rel == uids_new == uids_old
 
 
 # ── get_index_stats ─────────────────────────────────────────────────────────

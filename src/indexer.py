@@ -42,7 +42,8 @@ def create_schema():
         # STORED fields: returned in results but not searchable
         authors=STORED(),
         journal=STORED(),
-        publish_time=STORED()
+        # ID with sortable=True enables sort-by-date (ISO dates sort lexicographically)
+        publish_time=ID(stored=True, sortable=True)
     )
 
     return schema
