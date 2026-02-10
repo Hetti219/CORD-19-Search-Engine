@@ -151,7 +151,7 @@ class CORD19Searcher:
                     'journal': hit.get('journal', 'Unknown'),
                     'publish_time': hit.get('publish_time', 'Unknown'),
                     'url': hit.get('url', ''),
-                    'score': hit.score  # BM25 score
+                    'score': hit.score if isinstance(hit.score, (int, float)) else 0.0
                 })
 
             return {
