@@ -134,10 +134,11 @@ class CORD19Searcher:
             results = searcher.search(query, limit=limit, sortedby=sort_facet,
                                       filter=filter_query)
 
-            # Use estimated_length() for a more accurate total when limit caps results
-            scored = len(results)
-            estimated = results.estimated_length()
-            total = max(scored, estimated)
+            # Use scored (actual retrieved) count for pagination so every
+            # page is guaranteed to have results — estimated_length() can
+            # vastly overcount when limit caps the result set, creating
+            # empty "phantom" pages at the end.
+            total = len(results)
             total_pages = (total + results_per_page - 1) // results_per_page
 
             # Calculate slice for current page
@@ -145,7 +146,7 @@ class CORD19Searcher:
             end = start + results_per_page
 
             # Compute facets from top results for the sidebar
-            facets = self._extract_facets(results, min(scored, 200))
+            facets = self._extract_facets(results, min(total, 200))
 
             # Extract results for current page with highlighted query terms
             result_list = []
