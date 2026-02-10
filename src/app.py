@@ -47,21 +47,24 @@ def search():
     Query parameters:
         q: Search query string
         page: Page number (default: 1)
+        sort: Sort order — relevance, date_desc, date_asc (default: relevance)
     """
     if searcher is None:
         return render_template('setup.html')
 
     query = request.args.get('q', '').strip()
     page = max(1, request.args.get('page', 1, type=int))
+    sort = request.args.get('sort', 'relevance')
 
     if not query:
         return render_template('search.html', stats=searcher.get_index_stats())
 
     # Execute search with error handling for malformed queries
     try:
-        results = searcher.search(query, page=page, results_per_page=10)
+        results = searcher.search(query, page=page, results_per_page=10, sort_by=sort)
     except Exception:
-        return render_template('results.html', results=[], total=0, page=1, total_pages=0, query=query)
+        return render_template('results.html', results=[], total=0, page=1,
+                               total_pages=0, query=query, sort='relevance')
 
     return render_template('results.html', **results)
 
