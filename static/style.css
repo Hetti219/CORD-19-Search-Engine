@@ -269,18 +269,24 @@ main {
     color: #666;
 }
 
-.sort-controls {
+.results-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-controls, .per-page-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.sort-controls label {
+.sort-controls label, .per-page-controls label {
     font-size: 0.85rem;
     color: #666;
 }
 
-.sort-controls select {
+.sort-controls select, .per-page-controls select {
     padding: 0.4rem 0.6rem;
     font-size: 0.85rem;
     border: 1px solid #ddd;
@@ -337,12 +343,53 @@ mark.highlight {
 .pagination {
     display: flex;
     justify-content: center;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.3rem;
     margin-top: 2rem;
 }
 
-.pagination a {
+.page-prev, .page-next {
     color: #3498db;
+    text-decoration: none;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
+}
+
+.page-prev:hover, .page-next:hover {
+    text-decoration: underline;
+}
+
+.page-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: #3498db;
+}
+
+a.page-num:hover {
+    background: #f0f0f0;
+}
+
+.page-current {
+    background: #3498db;
+    color: white;
+    font-weight: 600;
+}
+
+.page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 2rem;
+    color: #999;
+    font-size: 0.85rem;
 }
 
 .no-results {
