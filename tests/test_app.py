@@ -100,3 +100,20 @@ def test_page_string(flask_client_with_index):
 def test_page_very_large(flask_client_with_index):
     resp = flask_client_with_index.get("/search?q=vaccine&page=99999")
     assert resp.status_code == 200
+
+
+# ── Sort parameter ─────────────────────────────────────────────────────────
+
+def test_sort_dropdown_rendered(flask_client_with_index):
+    """Results page includes the sort dropdown."""
+    resp = flask_client_with_index.get("/search?q=vaccine")
+    assert b"sort-select" in resp.data
+    assert b"Relevance" in resp.data
+    assert b"Date (Newest)" in resp.data
+    assert b"Date (Oldest)" in resp.data
+
+
+def test_sort_date_desc(flask_client_with_index):
+    resp = flask_client_with_index.get("/search?q=vaccine&sort=date_desc")
+    assert resp.status_code == 200
+    assert b"date_desc" in resp.data
