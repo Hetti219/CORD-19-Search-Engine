@@ -3,7 +3,7 @@
 
 # Code Quality Tools
 flake8==7.3.0           # Python linting
-black==26.1.0           # Code formatting
+black==26.3.0           # Code formatting
 pylint==4.0.5           # Advanced linting
 
 # Security
