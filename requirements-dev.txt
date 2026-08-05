@@ -10,5 +10,5 @@ pylint==4.0.6           # Advanced linting
 safety==3.8.1           # Dependency vulnerability scanning
 
 # Testing (for future expansion)
-pytest==9.0.3           # Testing framework
+pytest==9.1.1           # Testing framework
 pytest-cov==7.1.0       # Coverage reporting
