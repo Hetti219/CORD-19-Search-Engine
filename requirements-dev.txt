@@ -4,7 +4,7 @@
 # Code Quality Tools
 flake8==7.3.0           # Python linting
 black==26.5.1           # Code formatting
-pylint==4.0.6           # Advanced linting
+pylint==4.0.7           # Advanced linting
 
 # Security
 safety==3.8.1           # Dependency vulnerability scanning
