@@ -52,7 +52,8 @@ cord19_search_engine/
 │   ├── setup.html              # Setup instructions page
 │   └── about.html              # About page
 ├── static/
-│   └── style.css               # CSS styling
+│   ├── style.css               # CSS styling
+│   └── js/search.js            # Sort / per-page navigation (no inline JS)
 ├── tests/
 │   └── test_search.py          # Example searches for report
 ├── requirements.txt            # Python dependencies
@@ -458,6 +459,28 @@ Potential improvements for even better performance:
 - Field-specific BM25F weights tuning
 - Incremental index updates for new papers
 - Distributed indexing for multi-machine setups
+
+## Security
+
+The web layer applies a small set of hardening rules. Please keep them intact
+when changing the templates or the searcher:
+
+- **Output is escaped at the source.** `CORD19Searcher` returns the `title` and
+  `abstract` fields as HTML-safe strings: document text is escaped, and only
+  the `<mark>` tags added by the highlighter are real markup. The results
+  template therefore has to use `| safe` for those two fields. The fallback
+  path used when a document contains none of the query terms is escaped too.
+- **No inline JavaScript.** The sort and results-per-page controls are wired up
+  by `static/js/search.js`, which rebuilds the query string from
+  `window.location.search`. Never interpolate a request parameter into an
+  inline `on*` handler: HTML escaping does not protect a JavaScript context,
+  because the browser decodes the attribute before the script parser runs.
+- **URLs are scheme-checked.** `searcher.safe_url()` only lets `http` and
+  `https` through, so a `javascript:` value in the dataset cannot become a
+  clickable link.
+- **Security headers are set on every response**, including a
+  `Content-Security-Policy` without `unsafe-inline`. If you add a script or a
+  style, put it in `static/` rather than inlining it.
 
 ## License
 

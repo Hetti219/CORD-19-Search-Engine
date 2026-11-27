@@ -29,6 +29,38 @@ except (EmptyIndexError, Exception) as e:
     print(f"Warning: Could not load search index: {e}")
     searcher = None
 
+# Content-Security-Policy without 'unsafe-inline' forbids inline scripts and
+# styles, which is what stops a template injection bug from turning into
+# script execution. The sort and per-page controls live in static/js/ so
+# that no user input ever has to be interpolated into a JavaScript context.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Strict-Transport-Security": "max-age=31536000",
+}
+
+
+@app.after_request
+def apply_security_headers(response):
+    """Attach security headers to every response."""
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
+    return response
+
+
 @app.route('/')
 def home():
     """
