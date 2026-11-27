@@ -19,6 +19,19 @@ from whoosh.highlight import Highlighter, SentenceFragmenter, WholeFragmenter, H
 
 VALID_SORT_OPTIONS = ("relevance", "date_desc", "date_asc")
 VALID_PER_PAGE_OPTIONS = (10, 25, 50)
+DATE_SORT_OPTIONS = ("date_desc", "date_asc")
+
+# Maximum number of documents a single query may retrieve. Whoosh cannot
+# skip to an offset, so serving a deep page means scoring every document
+# before it; this bound keeps a runaway page number from exhausting
+# memory. Pages beyond this limit are not reachable.
+MAX_RESULTS = 10000
+
+# Publication dates are stored as ISO YYYY-MM-DD strings. These bounds
+# cover every real date and exclude the placeholder used for a missing
+# date, which sorts after them.
+MIN_PUBLISH_DATE = "0000-00-00"
+MAX_PUBLISH_DATE = "9999-12-31"
 
 # URL schemes that may be rendered as a link target. Anything else (for
 # example "javascript:" or "data:") is dropped so that a hostile value in
@@ -122,12 +135,15 @@ class CORD19Searcher:
                   'abstract' entries are HTML-safe strings: escaped document
                   text with the matching terms wrapped in <mark> tags.
                 - total: Total number of matches
-                - page: Current page number
-                - total_pages: Total number of pages
+                - page: Page number that was served. A request for a page
+                  past the end is clamped to the last available page.
+                - total_pages: Number of pages that can be served
                 - sort: Active sort option
                 - date_from/date_to: Active date filter values
                 - journal: Active journal filter
                 - facets: Dict with top journals and years
+                - limited: True when there are more matches than a single
+                  query is allowed to page through
 
         RANKING EXPLANATION (for report):
         -----------------------------------
@@ -154,21 +170,20 @@ class CORD19Searcher:
 
         if sort_by not in VALID_SORT_OPTIONS:
             sort_by = "relevance"
+        if page < 1:
+            page = 1
+        if results_per_page < 1:
+            raise ValueError("results_per_page must be at least 1")
 
         # Parse the query string
         query = self.parser.parse(query_string)
 
         # Open a searcher with BM25F scoring
         with self.ix.searcher(weighting=BM25F()) as searcher:
-            # OPTIMIZATION: Only retrieve what we need instead of all results
-            # Calculate how many results we need for this page
-            # Add buffer of 1000 to ensure accurate counts for reasonable pagination
-            needed = page * results_per_page
-            limit = max(needed, 100)  # Minimum 100 for good count estimates
-
-            # For very deep pagination (page > 100), cap limit to avoid memory issues
-            if limit > 10000:
-                limit = 10000
+            # Whoosh has no offset support: serving page N means retrieving
+            # and scoring the top N * results_per_page documents. This is
+            # the same trade-off Whoosh's own Searcher.search_page makes.
+            limit = min(page * results_per_page, MAX_RESULTS)
 
             # Determine sort order
             sort_facet = None
@@ -178,18 +193,32 @@ class CORD19Searcher:
                 sort_facet = FieldFacet("publish_time", reverse=False)
 
             # Build filter query from active filters
-            filter_query = self._build_filter_query(date_from, date_to, journal)
+            filter_query = self._build_filter_query(
+                date_from, date_to, journal, sort_by=sort_by)
 
-            # Execute search with optimized limit
+            # Execute search with the limit required for this page
             results = searcher.search(query, limit=limit, sortedby=sort_facet,
                                       filter=filter_query)
 
-            # Use scored (actual retrieved) count for pagination so every
-            # page is guaranteed to have results — estimated_length() can
-            # vastly overcount when limit caps the result set, creating
-            # empty "phantom" pages at the end.
-            total = len(results)
-            total_pages = (total + results_per_page - 1) // results_per_page
+            # Total number of matching documents. estimated_length() uses
+            # Whoosh's query statistics instead of re-scanning the whole
+            # index, which is about a hundred times cheaper than
+            # len(results) for the same answer.
+            total = results.estimated_length()
+
+            # How many pages of results exist, capped at the number that
+            # can actually be served. A page deeper than that would need
+            # more documents than one query is allowed to retrieve, so
+            # counting it would promise a page that renders empty.
+            max_reachable_pages = self._max_reachable_pages(results_per_page)
+            total_pages = min(self._page_count(total, results_per_page),
+                              max_reachable_pages)
+
+            # A request for a page past the end is clamped to the last
+            # page, so the header never describes a page that does not
+            # exist and the page is never empty while pages remain.
+            if total_pages and page > total_pages:
+                page = total_pages
 
             # Calculate slice for current page
             start = (page - 1) * results_per_page
@@ -241,11 +270,24 @@ class CORD19Searcher:
                 'date_from': date_from or '',
                 'date_to': date_to or '',
                 'journal': journal or '',
-                'facets': facets
+                'facets': facets,
+                # True when there are more matches than a single query is
+                # allowed to page through, so the UI can say so.
+                'limited': total > MAX_RESULTS,
             }
 
     @staticmethod
-    def _build_filter_query(date_from, date_to, journal):
+    def _page_count(total, results_per_page):
+        """Number of pages needed to show ``total`` results."""
+        return (total + results_per_page - 1) // results_per_page
+
+    @staticmethod
+    def _max_reachable_pages(results_per_page):
+        """Number of pages that can be served within MAX_RESULTS."""
+        return max(1, (MAX_RESULTS + results_per_page - 1) // results_per_page)
+
+    @staticmethod
+    def _build_filter_query(date_from, date_to, journal, sort_by="relevance"):
         """Build a Whoosh filter query from active filter parameters.
 
         Returns a combined And query, or None if no filters are active.
@@ -255,6 +297,13 @@ class CORD19Searcher:
             filters.append(TermRange("publish_time", date_from, date_to))
         if journal:
             filters.append(Term("journal", journal))
+        if sort_by in DATE_SORT_OPTIONS:
+            # A paper with no publication date has no place in a date
+            # ordering. The placeholder used for a missing date sorts
+            # after every real date, so restricting the range to real
+            # dates leaves those papers out of a date-sorted result set.
+            filters.append(TermRange("publish_time", MIN_PUBLISH_DATE,
+                                     MAX_PUBLISH_DATE))
         if not filters:
             return None
         return filters[0] if len(filters) == 1 else And(filters)
