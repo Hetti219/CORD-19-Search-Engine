@@ -7,6 +7,8 @@ This is the core RETRIEVAL FUNCTION for your search engine.
 """
 
 from collections import Counter
+from html import escape
+from urllib.parse import urlparse
 
 from whoosh import index
 from whoosh.qparser import MultifieldParser, OrGroup
@@ -17,6 +19,52 @@ from whoosh.highlight import Highlighter, SentenceFragmenter, WholeFragmenter, H
 
 VALID_SORT_OPTIONS = ("relevance", "date_desc", "date_asc")
 VALID_PER_PAGE_OPTIONS = (10, 25, 50)
+
+# URL schemes that may be rendered as a link target. Anything else (for
+# example "javascript:" or "data:") is dropped so that a hostile value in
+# the dataset cannot turn a result title into a script execution vector.
+SAFE_URL_SCHEMES = ("http", "https")
+
+
+def escape_html(text):
+    """HTML-escape raw document text.
+
+    Whoosh's highlighter escapes the text it formats, but when a document
+    field contains none of the query terms the highlighter returns nothing
+    and the stored value has to be rendered directly. Escaping it here keeps
+    every string returned by this module safe to mark as safe in a template.
+
+    Args:
+        text: Raw text taken from the index (may be None).
+
+    Returns:
+        The text with HTML metacharacters replaced by entities.
+    """
+    return escape(text or "", quote=True)
+
+
+def safe_url(url):
+    """Return ``url`` when it uses a safe scheme, otherwise an empty string.
+
+    Result links are built from the dataset's ``url`` column, so a value
+    such as ``javascript:alert(1)`` would otherwise become a clickable
+    script execution vector.
+
+    Args:
+        url: The raw URL from the index (may be None).
+
+    Returns:
+        The URL unchanged if its scheme is in :data:`SAFE_URL_SCHEMES`,
+        otherwise an empty string.
+    """
+    if not url:
+        return ""
+    try:
+        scheme = urlparse(url).scheme.lower()
+    except ValueError:
+        return ""
+    return url if scheme in SAFE_URL_SCHEMES else ""
+
 
 class CORD19Searcher:
     """
@@ -70,7 +118,9 @@ class CORD19Searcher:
 
         Returns:
             dict containing:
-                - results: List of result dictionaries
+                - results: List of result dictionaries. The 'title' and
+                  'abstract' entries are HTML-safe strings: escaped document
+                  text with the matching terms wrapped in <mark> tags.
                 - total: Total number of matches
                 - page: Current page number
                 - total_pages: Total number of pages
@@ -154,13 +204,19 @@ class CORD19Searcher:
                 # Sentence-aware highlighted abstract snippets
                 highlighted_abstract = self.abstract_highlighter.highlight_hit(hit, "abstract", top=3)
                 if not highlighted_abstract:
+                    # The highlighter returns nothing when the field contains
+                    # none of the query terms, so the stored text is used
+                    # instead. It must be escaped: it is rendered as safe
+                    # markup in the results template.
                     abstract = hit.get('abstract', 'No abstract')
-                    highlighted_abstract = self._truncate_at_sentence(abstract)
+                    highlighted_abstract = escape_html(self._truncate_at_sentence(abstract))
 
                 # Highlighted title (full text with matching terms marked)
                 highlighted_title = self.title_highlighter.highlight_hit(hit, "title")
                 if not highlighted_title:
-                    highlighted_title = hit.get('title', 'No title')
+                    # Same as above: the fallback title comes straight from
+                    # the index and has to be escaped.
+                    highlighted_title = escape_html(hit.get('title', 'No title'))
 
                 result_list.append({
                     'cord_uid': hit.get('cord_uid', ''),
@@ -169,7 +225,7 @@ class CORD19Searcher:
                     'authors': hit.get('authors', 'Unknown'),
                     'journal': hit.get('journal', 'Unknown'),
                     'publish_time': hit.get('publish_time', 'Unknown'),
-                    'url': hit.get('url', ''),
+                    'url': safe_url(hit.get('url', '')),
                     'score': hit.score if isinstance(hit.score, (int, float)) else 0.0
                 })
 
