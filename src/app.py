@@ -6,15 +6,16 @@ This is the PRESENTATION LAYER of your search engine.
 """
 
 import os
-import sys
 import time
 from flask import Flask, render_template, request
-from whoosh.index import EmptyIndexError
 
-# Add src directory to path for robust imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from searcher import CORD19Searcher
+try:
+    # Imported as part of the "src" package.
+    from .searcher import CORD19Searcher, VALID_PER_PAGE_OPTIONS
+except ImportError:
+    # Executed directly (python src/app.py), where the package is not
+    # available but this directory is on sys.path.
+    from searcher import CORD19Searcher, VALID_PER_PAGE_OPTIONS
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
@@ -25,8 +26,10 @@ index_path = os.path.join(os.path.dirname(__file__), '..', 'index')
 try:
     if os.path.exists(index_path) and os.listdir(index_path):
         searcher = CORD19Searcher(index_path)
-except (EmptyIndexError, Exception) as e:
-    print(f"Warning: Could not load search index: {e}")
+except Exception as e:
+    # The index may be missing, empty or corrupt. The application stays up
+    # and shows the setup instructions instead.
+    app.logger.warning("Could not load search index: %s", e)
     searcher = None
 
 # Content-Security-Policy without 'unsafe-inline' forbids inline scripts and
@@ -92,7 +95,7 @@ def search():
     query = request.args.get('q', '').strip()
     page = max(1, request.args.get('page', 1, type=int))
     per_page = request.args.get('per_page', 10, type=int)
-    if per_page not in (10, 25, 50):
+    if per_page not in VALID_PER_PAGE_OPTIONS:
         per_page = 10
     sort = request.args.get('sort', 'relevance')
     date_from = request.args.get('date_from', '').strip() or None
@@ -102,20 +105,28 @@ def search():
     if not query:
         return render_template('search.html', stats=searcher.get_index_stats())
 
-    # Execute search with error handling for malformed queries
+    # Execute the search. A failure here means the index or the query
+    # could not be processed, which is different from a query that simply
+    # matched nothing, so it is reported instead of being shown as an
+    # empty result set.
     try:
         t0 = time.perf_counter()
         results = searcher.search(query, page=page, results_per_page=per_page,
                                   sort_by=sort, date_from=date_from,
                                   date_to=date_to, journal=journal)
         results['search_time'] = round(time.perf_counter() - t0, 3)
+        results['error'] = None
     except Exception:
-        return render_template('results.html', results=[], total=0, page=1,
-                               total_pages=0, results_per_page=per_page,
-                               page_range=[], query=query, sort='relevance',
-                               search_time=0,
-                               date_from='', date_to='', journal='',
-                               facets={'journals': [], 'years': []})
+        app.logger.exception("Search failed for query %r", query)
+        results = {
+            'results': [], 'total': 0, 'page': 1, 'total_pages': 0,
+            'results_per_page': per_page, 'page_range': [], 'query': query,
+            'sort': 'relevance', 'date_from': '', 'date_to': '', 'journal': '',
+            'facets': {'journals': [], 'years': []}, 'search_time': 0,
+            'limited': False,
+            'error': 'The search could not be completed. The index may be '
+                     'unavailable — please try again or rebuild it.',
+        }
 
     return render_template('results.html', **results)
 

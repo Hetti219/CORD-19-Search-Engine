@@ -55,8 +55,18 @@ cord19_search_engine/
 │   ├── style.css               # CSS styling
 │   └── js/search.js            # Sort / per-page navigation (no inline JS)
 ├── tests/
-│   └── test_search.py          # Example searches for report
+│   ├── conftest.py              # Shared fixtures
+│   ├── constants.py             # Shared test constants
+│   ├── test_app.py              # Flask route tests
+│   ├── test_indexer.py          # Index creation tests
+│   ├── test_preprocessor.py     # Preprocessing tests
+│   ├── test_search.py           # Example searches for report
+│   ├── test_searcher.py         # Search and ranking tests
+│   ├── test_security.py         # Output escaping and header tests
+│   └── test_correctness.py      # Pagination, data quality and error tests
+├── .github/workflows/ci.yml     # CI/CD pipeline
 ├── requirements.txt            # Python dependencies
+├── requirements-dev.txt        # Development and test dependencies
 └── README.md                   # This file
 ```
 
@@ -66,9 +76,15 @@ The search engine includes several performance optimizations for handling large-
 
 ### 1. Vectorized Preprocessing ([preprocessor.py](src/preprocessor.py))
 
-- **Technique**: Pandas vectorized string operations instead of row-by-row `.apply()`
-- **Benefit**: 10-50x faster text cleaning on large datasets
-- **Implementation**: Uses `.str.replace()`, `.str.lower()` directly on Series objects
+- **Technique**: Pandas column operations instead of row-by-row `.apply()`
+- **Implementation**: Uses `dropna`, `drop_duplicates`, `fillna` and
+  vectorised `.str.*` operations on whole columns
+- **What it does**: selects the columns the index needs, removes papers
+  with neither a title nor an abstract, removes duplicates, and fills
+  missing values
+- **What it does not do**: it does not strip special characters or lowercase
+  the text. Lowercasing and stemming happen at index time, in Whoosh's
+  `StemmingAnalyzer`.
 
 ### 2. Multi-threaded Indexing ([indexer.py](src/indexer.py))
 
@@ -82,16 +98,27 @@ The search engine includes several performance optimizations for handling large-
 
 ### 3. Optimized Search Queries ([searcher.py](src/searcher.py))
 
-- **Technique**: Smart result limiting based on pagination needs
-- **Implementation**: Only retrieves `max(page * results_per_page, 100)` results (capped at 10k)
+- **Technique**: Only the documents needed for the requested page are scored
+- **Implementation**: Retrieves `page * results_per_page` documents, bounded
+  by `MAX_RESULTS` (10,000). The reported total comes from
+  `Results.estimated_length()`, which reads Whoosh's query statistics
+  instead of re-scanning the index.
 - **Benefit**: 10-20x faster searches (50-300ms vs 1-10 seconds)
-- **Previous Issue**: `limit=None` was loading all matching documents before pagination
+- **Pagination limit**: Whoosh cannot skip to an offset, so serving page *N*
+  means scoring the *N* × `results_per_page` documents before it. Pages
+  beyond `MAX_RESULTS` are therefore not reachable; the page count reflects
+  what can actually be served and the interface says when results are
+  truncated.
+- **Date-sorted searches cost more**: sorting by date makes Whoosh collect
+  every matching document before ordering them, so a date-sorted query is
+  more expensive and uses more memory than a relevance-ranked one.
 
 ### Hardware Adaptation
 
-The optimizations are designed to adapt to available system resources:
+The optimizations are configured for a specific machine rather than detected
+at runtime:
 
-- **CPU Usage**: Uses 4 cores by default (configurable in [indexer.py:78](src/indexer.py#L78))
+- **CPU Usage**: Uses 4 cores, set in [indexer.py](src/indexer.py) (`procs=4`)
 - **Memory Usage**: 512MB buffer (safe for systems with 4GB+ RAM)
 - **Disk I/O**: Multi-segment index structure reduces disk bottlenecks
 
@@ -236,15 +263,19 @@ Where:
 
 ### Index Schema
 
-| Field        | Type   | Indexed | Stored | Description                 |
-| ------------ | ------ | ------- | ------ | --------------------------- |
-| cord_uid     | ID     | No      | Yes    | Unique paper identifier     |
-| title        | TEXT   | Yes     | Yes    | Paper title (searchable)    |
-| abstract     | TEXT   | Yes     | Yes    | Paper abstract (searchable) |
-| authors      | STORED | No      | Yes    | Author list                 |
-| journal      | STORED | No      | Yes    | Journal name                |
-| publish_time | STORED | No      | Yes    | Publication date            |
-| url          | STORED | No      | Yes    | Link to paper               |
+| Field        | Type   | Indexed | Stored | Description                              |
+| ------------ | ------ | ------- | ------ | ---------------------------------------- |
+| cord_uid     | ID     | Yes     | Yes    | Unique paper identifier                  |
+| title        | TEXT   | Yes     | Yes    | Paper title (searchable, stemmed)        |
+| abstract     | TEXT   | Yes     | Yes    | Paper abstract (searchable, stemmed)     |
+| authors      | STORED | No      | Yes    | Author list                              |
+| journal      | ID     | Yes     | Yes    | Journal name, exact-match filter         |
+| publish_time | ID     | Yes     | Yes    | Publication date, sortable and filterable |
+| url          | STORED | No      | Yes    | Link to paper                            |
+
+`journal` and `publish_time` are `ID` fields so that they can be matched
+exactly by the filters and, for the date, sorted on. `publish_time` is
+stored as an ISO `YYYY-MM-DD` string, which sorts correctly as text.
 
 ### Text Processing
 
@@ -395,7 +426,7 @@ This is normal and harmless. The warning has been suppressed with `low_memory=Fa
 If indexing is taking longer than expected:
 
 1. **Check CPU usage**: Indexer should use ~4 cores. Monitor with `htop` or Task Manager
-2. **Reduce CPU cores**: If system is overloaded, reduce `procs=4` to `procs=2` in [indexer.py:78](src/indexer.py#L78)
+2. **Reduce CPU cores**: If system is overloaded, reduce `procs=4` to `procs=2` in the `procs` setting in [indexer.py](src/indexer.py)
 3. **Check disk I/O**: Slow disk can bottleneck. Consider using SSD or RAM disk for index directory
 4. **Reduce RAM buffer**: If system is swapping, reduce `limitmb=512` to `limitmb=256`
 
@@ -410,15 +441,15 @@ If searches are taking >1 second:
    ```
 2. **Check index segments**: Multi-segment indexes search faster
 3. **Clear system cache**: Restart to clear memory if system is low on RAM
-4. **Verify optimization**: Check [searcher.py:83](src/searcher.py#L83) has `limit` parameter set (not `limit=None`)
+4. **Verify optimization**: Check [searcher.py](src/searcher.py) sets a `limit` for the requested page
 
 ### Out of memory errors
 
 If you encounter memory errors:
 
-1. **Reduce RAM buffer**: Set `limitmb=256` or `limitmb=128` in [indexer.py:78](src/indexer.py#L78)
+1. **Reduce RAM buffer**: Set `limitmb=256` or `limitmb=128` in the `procs` setting in [indexer.py](src/indexer.py)
 2. **Reduce CPU cores**: Set `procs=2` to reduce memory overhead
-3. **Enable sample mode**: Process smaller dataset in [preprocessor.py:102](src/preprocessor.py#L102)
+3. **Enable sample mode**: Process smaller dataset in the `sample_size` argument in [preprocessor.py](src/preprocessor.py)
 4. **Close other applications**: Free up system RAM before running indexer
 
 ## Implementation Notes
