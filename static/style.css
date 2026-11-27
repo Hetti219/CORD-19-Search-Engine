@@ -269,6 +269,25 @@ main {
     color: #666;
 }
 
+.results-error {
+    color: #a11;
+    background: #fdecea;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+    margin: 0 0 0.8rem 0;
+}
+
+.results-note {
+    color: #856404;
+    background: #fff8e1;
+    border: 1px solid #ffe9a8;
+    border-radius: 4px;
+    padding: 0.5rem 0.8rem;
+    margin: 0 0 0.8rem 0;
+    font-size: 0.9rem;
+}
+
 .results-controls {
     display: flex;
     align-items: center;

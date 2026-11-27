@@ -32,8 +32,7 @@
 
     <div class="search-layout">
         <!-- Filter sidebar -->
-        <aside class="filter-sidebar">
-            <!-- Date range filter -->
+        <aside class="filter-sidebar">            <!-- Date range filter -->
             <div class="filter-section">
                 <h3 class="filter-heading">Date Range</h3>
                 <form action="/search" method="GET" class="date-filter-form">
@@ -92,9 +91,17 @@
         <div class="results-main">
             <!-- Results summary and sort/per-page controls -->
             <div class="results-header">
+                {% if error %}
+                <p class="results-error" role="alert">{{ error }}</p>
+                {% endif %}
                 <p class="results-summary">
                     Found {{ total }} results for "{{ query }}" in {{ search_time }} seconds (Page {{ page }} of {{ total_pages }})
                 </p>
+                {% if limited %}
+                <p class="results-note">
+                    Only the first results can be paged through. Narrow the search or add a filter to see the rest.
+                </p>
+                {% endif %}
                 <div class="results-controls">
                     <div class="sort-controls">
                         <label for="sort-select">Sort by:</label>
@@ -135,7 +142,11 @@
                     <p class="result-abstract">{{ result.abstract | safe }}</p>
                 </article>
                 {% else %}
+                {% if error %}
+                <p class="no-results">The search could not be completed.</p>
+                {% else %}
                 <p class="no-results">No results found for "{{ query }}"</p>
+                {% endif %}
                 {% endfor %}
             </div>
 
