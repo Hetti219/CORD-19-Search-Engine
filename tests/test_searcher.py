@@ -16,7 +16,7 @@ def test_search_returns_dict(searcher):
     assert set(result.keys()) == {
         "results", "total", "page", "total_pages", "results_per_page",
         "page_range", "query", "sort",
-        "date_from", "date_to", "journal", "facets",
+        "date_from", "date_to", "journal", "facets", "limited",
     }
 
 
@@ -155,9 +155,23 @@ def test_pagination_total_pages(searcher):
 
 
 def test_pagination_beyond_last_page(searcher):
+    """A page past the end is clamped to the last page that exists.
+
+    Reporting the clamped page keeps the header consistent: the page
+    number never exceeds the number of pages, and the page is never
+    empty while pages remain.
+    """
     result = searcher.search("COVID", page=9999)
+    assert result["page"] == result["total_pages"]
+    assert result["results"]
+
+
+def test_pagination_beyond_last_page_of_empty_result(searcher):
+    """A query with no matches reports no pages and no results."""
+    result = searcher.search("xyznonexistentterm", page=9999)
+    assert result["total"] == 0
+    assert result["total_pages"] == 0
     assert result["results"] == []
-    assert result["page"] == 9999
 
 
 # ── Query term highlighting ────────────────────────────────────────────────
