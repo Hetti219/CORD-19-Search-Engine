@@ -1,7 +1,7 @@
 # CORD-19 Search Engine
 
 [![CI/CD Pipeline](https://github.com/Hetti219/CORD-19-Search-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Hetti219/CORD-19-Search-Engine/actions/workflows/ci.yml)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A high-performance COVID-19 research publication search engine built using the CORD-19 dataset, implementing BM25 ranking algorithm with an optimized inverted index structure.
@@ -124,7 +124,7 @@ at runtime:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.11+ (pandas 3.x requires 3.11 or newer)
 - pip (Python package manager)
 - **System Requirements**: 4+ CPU cores, 4GB+ RAM, 5GB+ disk space
 
