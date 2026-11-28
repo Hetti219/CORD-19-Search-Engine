@@ -68,7 +68,7 @@ python -c "from src.app import app"
 
 ### 4. Security Check
 ```bash
-safety check
+pip-audit --requirement requirements.txt --requirement requirements-dev.txt
 ```
 
 ## Submitting Changes
