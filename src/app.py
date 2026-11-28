@@ -75,6 +75,7 @@ def home():
     stats = searcher.get_index_stats()
     return render_template('search.html', stats=stats)
 
+
 @app.route('/search')
 def search():
     """
@@ -130,12 +131,14 @@ def search():
 
     return render_template('results.html', **results)
 
+
 @app.route('/about')
 def about():
     """
     About page explaining the search engine (optional but nice to have).
     """
     return render_template('about.html')
+
 
 if __name__ == '__main__':
     app.run(debug=False, port=5000)

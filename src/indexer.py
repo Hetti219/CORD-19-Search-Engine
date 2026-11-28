@@ -159,6 +159,7 @@ def create_index(processed_data_path, index_dir):
     print(f"Index created with {ix.doc_count()} documents")
     return ix
 
+
 if __name__ == "__main__":
     # Use absolute paths relative to script location
     script_dir = os.path.dirname(os.path.abspath(__file__))

@@ -6,11 +6,7 @@ This script runs test queries against the search engine and
 outputs results in a format suitable for inclusion in the report.
 """
 
-import sys
 import os
-
-# Add parent directory to path so we can import from src
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from searcher import CORD19Searcher
 
@@ -28,9 +24,9 @@ def run_test_searches():
     print("=" * 70)
     print("CORD-19 SEARCH ENGINE - TEST RESULTS")
     print("=" * 70)
-    print(f"\nIndex Statistics:")
+    print("\nIndex Statistics:")
     print(f"  Total Documents: {stats['total_documents']}")
-    print(f"  Indexed Fields: {', '.join(stats['fields'])}")
+    print("  Indexed Fields: " + ", ".join(stats['fields']))
 
     # Example searches to include in report
     # Simple keyword queries
@@ -73,7 +69,7 @@ def run_test_searches():
         results = searcher.search(query, page=1, results_per_page=5)
 
         print(f"Total Results: {results['total']}")
-        print(f"\nTop 5 Results:")
+        print("\nTop 5 Results:")
 
         for i, r in enumerate(results['results'], 1):
             print(f"\n  {i}. Title: {r['title'][:70]}{'...' if len(r['title']) > 70 else ''}")
