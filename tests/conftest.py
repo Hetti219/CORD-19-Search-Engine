@@ -12,6 +12,7 @@ import pytest
 from preprocessor import preprocess_cord19
 from indexer import create_index
 from searcher import CORD19Searcher
+from constants import EXPECTED_DOC_COUNT  # noqa: F401 — re-export for fixtures
 
 
 # ---------------------------------------------------------------------------
@@ -137,12 +138,10 @@ SAMPLE_PAPERS = [
     },
 ]
 
-from constants import EXPECTED_DOC_COUNT  # noqa: F401 — re-export for fixtures
-
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def sample_csv(tmp_path):

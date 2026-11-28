@@ -1,6 +1,5 @@
 """Tests for src/indexer.py"""
 
-import pandas as pd
 from whoosh import index
 from whoosh.fields import TEXT, ID, STORED
 
